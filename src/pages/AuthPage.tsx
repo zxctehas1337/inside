@@ -96,16 +96,7 @@ export default function AuthPage() {
       <div className="auth-container">
         <div className="auth-box">
           <div className="auth-logo">
-            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-              <rect width="48" height="48" rx="12" fill="url(#gradient)"/>
-              <path d="M24 12L36 24L24 36L12 24L24 12Z" fill="white"/>
-              <defs>
-                <linearGradient id="gradient" x1="0" y1="0" x2="48" y2="48">
-                  <stop offset="0%" stopColor="#A855F7"/>
-                  <stop offset="100%" stopColor="#EC4899"/>
-                </linearGradient>
-              </defs>
-            </svg>
+            <img src="/icon.ico" alt="Inside" width="48" height="48" style={{ borderRadius: '12px' }} />
             <div className="logo-text">
               <span className="brand">INSIDE</span>
               <span className="version">v3.0.0</span>

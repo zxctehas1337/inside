@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import AnimatedBackground from '../components/AnimatedBackground'
 import Notification from '../components/Notification'
+import { LogoutModal } from '../components/LogoutModal'
 import { getCurrentUser, setCurrentUser, Database } from '../utils/database'
 import { User, NotificationType } from '../types'
+import { DOWNLOAD_LINKS } from '../utils/constants'
 import '../styles/DashboardPage.css'
 
 type PageType = 'home' | 'profile' | 'settings'
@@ -13,6 +15,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [notification, setNotification] = useState<{ message: string; type: NotificationType } | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -32,10 +35,8 @@ export default function DashboardPage() {
   }, [navigate])
 
   const handleLogout = () => {
-    if (confirm('Вы уверены, что хотите выйти?')) {
-      setCurrentUser(null)
-      navigate('/auth')
-    }
+    setCurrentUser(null)
+    navigate('/auth')
   }
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,20 +114,17 @@ export default function DashboardPage() {
         />
       )}
 
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onConfirm={handleLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
+
       <div className="dashboard-container">
         {/* Sidebar */}
         <aside className="dashboard-sidebar">
           <div className="sidebar-header">
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-              <rect width="40" height="40" rx="10" fill="url(#gradient)"/>
-              <path d="M20 10L30 20L20 30L10 20L20 10Z" fill="white"/>
-              <defs>
-                <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
-                  <stop offset="0%" stopColor="#A855F7"/>
-                  <stop offset="100%" stopColor="#EC4899"/>
-                </linearGradient>
-              </defs>
-            </svg>
+            <img src="/icon.ico" alt="Inside Client" width="40" height="40" style={{ borderRadius: '8px' }} />
             <div>
               <div className="brand">INSIDE</div>
               <div className="version">v3.0.0</div>
@@ -183,7 +181,7 @@ export default function DashboardPage() {
           </nav>
 
           <div className="sidebar-footer">
-            <button className="logout-btn" onClick={handleLogout}>
+            <button className="logout-btn" onClick={() => setShowLogoutModal(true)}>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path d="M11 3H4C3.44772 3 3 3.44772 3 4V16C3 16.5523 3.44772 17 4 17H11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 <path d="M13 13L17 10L13 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -251,14 +249,18 @@ export default function DashboardPage() {
               <div className="quick-actions">
                 <h2>Быстрые действия</h2>
                 <div className="actions-grid">
-                  <Link to="/#download" className="action-card">
+                  <a 
+                    href={user.subscription === 'alpha' ? DOWNLOAD_LINKS.alpha : user.subscription === 'premium' ? DOWNLOAD_LINKS.premium : DOWNLOAD_LINKS.free} 
+                    className="action-card"
+                    download
+                  >
                     <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
                       <path d="M16 6V20M16 20L22 14M16 20L10 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                       <path d="M6 24V25C6 25.5304 6.21071 26.0391 6.58579 26.4142C6.96086 26.7893 7.46957 27 8 27H24C24.5304 27 25.0391 26.7893 25.4142 26.4142C25.7893 26.0391 26 25.5304 26 25V24" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                     </svg>
                     <h3>Скачать клиент</h3>
                     <p>Загрузите последнюю версию</p>
-                  </Link>
+                  </a>
 
                   <Link to="/#pricing" className="action-card">
                     <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
@@ -290,23 +292,25 @@ export default function DashboardPage() {
                 <p>Управление информацией аккаунта</p>
               </div>
 
-              <div className="profile-card">
-                <div className="profile-avatar">
-                  {avatarPreview ? (
-                    <img src={avatarPreview} alt="Avatar" style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover' }} />
-                  ) : (
-                    <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-                      <circle cx="40" cy="40" r="40" fill="url(#avatarGradient)"/>
-                      <path d="M40 20C32.268 20 26 26.268 26 34C26 41.732 32.268 48 40 48C47.732 48 54 41.732 54 34C54 26.268 47.732 20 40 20Z" fill="white" fillOpacity="0.2"/>
-                      <path d="M20 60C20 51.716 26.716 45 35 45H45C53.284 45 60 51.716 60 60V65H20V60Z" fill="white" fillOpacity="0.2"/>
-                      <defs>
-                        <linearGradient id="avatarGradient" x1="0" y1="0" x2="80" y2="80">
-                          <stop offset="0%" stopColor="#A855F7"/>
-                          <stop offset="100%" stopColor="#EC4899"/>
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                  )}
+              <div className="profile-header">
+                <div className="profile-avatar-section">
+                  <div className="profile-avatar">
+                    {avatarPreview ? (
+                      <img src={avatarPreview} alt="Avatar" />
+                    ) : (
+                      <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
+                        <circle cx="60" cy="60" r="60" fill="url(#avatarGradient)"/>
+                        <path d="M60 30C48.402 30 39 39.402 39 51C39 62.598 48.402 72 60 72C71.598 72 81 62.598 81 51C81 39.402 71.598 30 60 30Z" fill="white" fillOpacity="0.2"/>
+                        <path d="M30 90C30 77.574 40.074 67.5 52.5 67.5H67.5C79.926 67.5 90 77.574 90 90V97.5H30V90Z" fill="white" fillOpacity="0.2"/>
+                        <defs>
+                          <linearGradient id="avatarGradient" x1="0" y1="0" x2="120" y2="120">
+                            <stop offset="0%" stopColor="#A855F7"/>
+                            <stop offset="100%" stopColor="#EC4899"/>
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                    )}
+                  </div>
                   <input
                     type="file"
                     id="avatarUpload"
@@ -318,31 +322,28 @@ export default function DashboardPage() {
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                       <path d="M10 4V16M4 10H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                     </svg>
+                    Изменить аватар
                   </button>
                 </div>
                 <div className="profile-info">
                   <h2>{user.username}</h2>
-                  <p>{user.email}</p>
+                  <p className="profile-email">{user.email}</p>
+                  <div className="profile-meta">
+                    <div className="profile-meta-item">
+                      <span className="meta-label">ID:</span>
+                      <span className="meta-value">{user.id}</span>
+                    </div>
+                    <div className="profile-meta-item">
+                      <span className="meta-label">Дата регистрации:</span>
+                      <span className="meta-value">{formatDate(user.registeredAt)}</span>
+                    </div>
+                    <div className="profile-meta-item">
+                      <span className="meta-label">Статус:</span>
+                      <span className="status-badge active">Активен</span>
+                    </div>
+                  </div>
                   <div className="subscription-badge">
                     {subscriptionNames[user.subscription]} версия
-                  </div>
-                </div>
-              </div>
-
-              <div className="info-grid">
-                <div className="info-card">
-                  <h3>Информация об аккаунте</h3>
-                  <div className="info-row">
-                    <span>ID пользователя:</span>
-                    <span>{user.id}</span>
-                  </div>
-                  <div className="info-row">
-                    <span>Дата регистрации:</span>
-                    <span>{formatDate(user.registeredAt)}</span>
-                  </div>
-                  <div className="info-row">
-                    <span>Статус:</span>
-                    <span className="status-badge active">Активен</span>
                   </div>
                 </div>
               </div>

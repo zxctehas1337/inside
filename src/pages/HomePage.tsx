@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import AnimatedBackground from '../components/AnimatedBackground'
+import SponsorsSection from '../components/SponsorsSection'
+import { DOWNLOAD_LINKS } from '../utils/constants'
 import '../styles/HomePage.css'
 
 export default function HomePage() {
@@ -446,6 +448,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Sponsors Marquee Section */}
+      <SponsorsSection />
+
       {/* Features Section */}
       <section id="features" className="features">
         <div className="container">
@@ -456,17 +461,47 @@ export default function HomePage() {
           </div>
           <div className="features-grid">
             {[
-              { icon: 'shield', title: 'Лучшие обходы', desc: 'Непробиваемые обходы античитов с постоянными обновлениями' },
-              { icon: 'layers', title: 'Высокая производительность', desc: 'Оптимизированный код без просадок FPS' },
-              { icon: 'layout', title: 'Стильный интерфейс', desc: 'Современный GUI с темами и настройками' },
-              { icon: 'grid', title: 'Богатый функционал', desc: 'Более 100 модулей для всех аспектов игры' },
-              { icon: 'clock', title: 'Регулярные обновления', desc: 'Еженедельные обновления с новыми функциями' },
-              { icon: 'support', title: 'Поддержка 24/7', desc: 'Круглосуточная помощь и активное сообщество' }
+              { 
+                icon: 'shield', 
+                title: 'Лучшие обходы', 
+                desc: 'Непробиваемые обходы античитов с постоянными обновлениями',
+                svg: <path d="M24 4L40 12V28C40 35.732 33.732 42 26 42H22C14.268 42 8 35.732 8 28V12L24 4Z" stroke="currentColor" strokeWidth="2"/>
+              },
+              { 
+                icon: 'zap', 
+                title: 'Высокая производительность', 
+                desc: 'Оптимизированный код без просадок FPS',
+                svg: <path d="M26 4L14 24H24L22 44L34 24H24L26 4Z" fill="currentColor"/>
+              },
+              { 
+                icon: 'monitor', 
+                title: 'Стильный интерфейс', 
+                desc: 'Современный GUI с темами и настройками',
+                svg: <><rect x="6" y="8" width="36" height="26" rx="2" stroke="currentColor" strokeWidth="2"/><path d="M6 30H42" stroke="currentColor" strokeWidth="2"/><path d="M18 40H30" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><path d="M24 34V40" stroke="currentColor" strokeWidth="2"/></>
+              },
+              { 
+                icon: 'list', 
+                title: 'Богатый функционал', 
+                desc: 'Более 100 модулей для всех аспектов игры',
+                svg: <><rect x="10" y="10" width="28" height="4" rx="1" fill="currentColor"/><rect x="10" y="18" width="28" height="4" rx="1" fill="currentColor"/><rect x="10" y="26" width="28" height="4" rx="1" fill="currentColor"/><rect x="10" y="34" width="20" height="4" rx="1" fill="currentColor"/></>
+              },
+              { 
+                icon: 'clock', 
+                title: 'Регулярные обновления', 
+                desc: 'Еженедельные обновления с новыми функциями',
+                svg: <><circle cx="24" cy="24" r="18" stroke="currentColor" strokeWidth="2"/><path d="M24 10V24L32 32" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></>
+              },
+              { 
+                icon: 'user', 
+                title: 'Поддержка 24/7', 
+                desc: 'Круглосуточная помощь и активное сообщество',
+                svg: <><circle cx="24" cy="16" r="8" fill="currentColor"/><path d="M10 42C10 33.163 16.268 26 24 26C31.732 26 38 33.163 38 42" fill="currentColor"/></>
+              }
             ].map((feature, i) => (
               <div key={i} className="feature-card">
                 <div className="feature-icon">
                   <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                    <path d="M24 4L40 12V28C40 35.732 33.732 42 26 42H22C14.268 42 8 35.732 8 28V12L24 4Z" stroke="currentColor" strokeWidth="2"/>
+                    {feature.svg}
                   </svg>
                 </div>
                 <h3>{feature.title}</h3>
@@ -516,7 +551,11 @@ export default function HomePage() {
                   Премиум модули
                 </li>
               </ul>
-              <Link to="/auth" className="btn btn-outline">Скачать бесплатно</Link>
+              {currentUser ? (
+                <a href={DOWNLOAD_LINKS.free} className="btn btn-outline" download>Скачать бесплатно</a>
+              ) : (
+                <Link to="/auth" className="btn btn-outline">Скачать бесплатно</Link>
+              )}
             </div>
 
             {/* Premium */}
@@ -544,7 +583,11 @@ export default function HomePage() {
                   Приоритетная поддержка
                 </li>
               </ul>
-              <Link to="/auth" className="btn btn-primary">Купить премиум</Link>
+              {currentUser ? (
+                <Link to="/dashboard" className="btn btn-primary">Купить премиум</Link>
+              ) : (
+                <Link to="/auth" className="btn btn-primary">Купить премиум</Link>
+              )}
             </div>
 
             {/* Alpha */}
@@ -571,7 +614,11 @@ export default function HomePage() {
                   Лучшие обходы
                 </li>
               </ul>
-              <Link to="/auth" className="btn btn-gradient">Купить альфа</Link>
+              {currentUser ? (
+                <Link to="/dashboard" className="btn btn-gradient">Купить альфа</Link>
+              ) : (
+                <Link to="/auth" className="btn btn-gradient">Купить альфа</Link>
+              )}
             </div>
           </div>
         </div>
@@ -590,7 +637,7 @@ export default function HomePage() {
               Скачать Inside Client v3.0.0
             </a>
             <div className="download-info">
-              <span>Windows 10/11 • Minecraft 1.20.1 • 25 МБ</span>
+              <span>Windows 10/11 • Minecraft 1.20.1</span>
             </div>
           </div>
         </div>

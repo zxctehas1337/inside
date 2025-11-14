@@ -9,6 +9,7 @@ export interface User {
   settings: UserSettings
   isAdmin?: boolean
   isBanned?: boolean
+  emailVerified?: boolean
 }
 
 export interface UserSettings {

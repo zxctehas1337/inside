@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User, NewsPost } from '../types'
 import Notification from '../components/Notification'
+import { LogoutModal } from '../components/LogoutModal'
 import '../styles/AdminPage.css'
 
 export default function AdminPage() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'overview' | 'news' | 'users' | 'activity'>('overview')
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
   
   // News state
   const [news, setNews] = useState<NewsPost[]>([])
@@ -170,6 +172,12 @@ export default function AdminPage() {
         />
       )}
 
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onConfirm={handleLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
+
       {/* Sidebar */}
       <aside className="admin-sidebar">
         <div className="admin-brand">
@@ -244,7 +252,7 @@ export default function AdminPage() {
           </button>
         </nav>
 
-        <button className="btn-logout" onClick={handleLogout}>
+        <button className="btn-logout" onClick={() => setShowLogoutModal(true)}>
           <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
             <path d="M3 3h8v2H5v10h6v2H3V3zm12.5 4.5l3.5 3.5-3.5 3.5-1.4-1.4 1.6-1.6H9v-2h6.7l-1.6-1.6 1.4-1.4z"/>
           </svg>
