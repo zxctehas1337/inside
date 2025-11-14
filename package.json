@@ -4,9 +4,9 @@
   "description": "```\r inside-website/\r ├── index.html          # Главная страница\r ├── auth.html           # Страница входа/регистрации\r ├── dashboard.html      # Личный кабинет\r ├── style.css           # Основные стили\r ├── auth.css            # Стили авторизации\r ├── dashboard.css       # Стили личного кабинета\r ├── script.js           # Основной JavaScript\r ├── auth.js             # JavaScript авторизации\r ├── dashboard.js        # JavaScript личного кабинета\r ├── icon.ico            # ⚠️ ПОМЕСТИТЕ СЮДА ВАШ FAVICON\r └── README.md           # Этот файл\r ```",
   "main": "auth.js",
   "scripts": {
-    "dev": "vite --config vite.config.ts",
+    "dev": "concurrently \"node server/index.js\" \"vite --config vite.config.ts\"",
     "build": "tsc && vite build",
-    "start": "concurrently \"node server/index.js\" \"vite --config vite.config.ts\"",
+    "start": "node server/index.js",
     "preview": "vite preview",
     "server": "node server/index.js",
     "test:email": "node server/test-email.js",

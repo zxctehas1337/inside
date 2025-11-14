@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { Pool } = require('pg');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
@@ -19,6 +20,9 @@ const pool = new Pool({
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from the dist directory
+app.use(express.static(path.join(__dirname, '../dist')));
 
 // Настройка SMTP транспорта
 const transporter = nodemailer.createTransport({
@@ -465,6 +469,11 @@ app.get('/api/users', async (req, res) => {
     console.error('Get users error:', error);
     res.status(500).json({ success: false, message: 'Ошибка сервера' });
   }
+});
+
+// Serve index.html for all other routes (SPA support)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
 app.listen(PORT, () => {
