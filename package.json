@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite --config vite.config.ts",
     "build": "tsc && vite build",
-    "start": "vite preview --host 0.0.0.0 --port $PORT",
-    "preview": "vite preview"
+    "start": "node server/index.js",
+    "preview": "vite preview",
+    "server": "node server/index.js"
   },
   "repository": {
     "type": "git",
@@ -31,6 +32,10 @@
   "dependencies": {
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-router-dom": "^7.9.6"
+    "react-router-dom": "^7.9.6",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "pg": "^8.11.3",
+    "dotenv": "^16.3.1"
   }
 }

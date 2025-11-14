@@ -12,25 +12,40 @@ export default function AuthPage() {
   const [notification, setNotification] = useState<{ message: string; type: NotificationType } | null>(null)
   const navigate = useNavigate()
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     const usernameOrEmail = formData.get('username') as string
     const password = formData.get('password') as string
+    const rememberMe = formData.get('rememberMe') === 'on'
 
     const db = new Database()
-    const result = db.login(usernameOrEmail, password)
+    const result = await db.login(usernameOrEmail, password)
 
     if (result.success && result.user) {
       setCurrentUser(result.user)
+      
+      // Сохраняем флаг "Запомнить меня"
+      if (rememberMe) {
+        localStorage.setItem('rememberMe', 'true')
+      } else {
+        localStorage.removeItem('rememberMe')
+      }
+      
       setNotification({ message: result.message, type: 'success' })
-      setTimeout(() => navigate('/dashboard'), 1500)
+      
+      // Перенаправление админа в админ-панель
+      if (result.user.isAdmin) {
+        setTimeout(() => navigate('/admin'), 1500)
+      } else {
+        setTimeout(() => navigate('/dashboard'), 1500)
+      }
     } else {
       setNotification({ message: result.message, type: 'error' })
     }
   }
 
-  const handleRegister = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     const username = formData.get('username') as string
@@ -55,7 +70,7 @@ export default function AuthPage() {
     }
 
     const db = new Database()
-    const result = db.register(username, email, password)
+    const result = await db.register(username, email, password)
 
     if (result.success && result.user) {
       setCurrentUser(result.user)

@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: inside-backend
+    env: node
+    buildCommand: npm install
+    startCommand: npm run server
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: PORT
+        value: 8080

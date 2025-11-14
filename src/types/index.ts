@@ -7,6 +7,8 @@ export interface User {
   registeredAt: string
   avatar?: string
   settings: UserSettings
+  isAdmin?: boolean
+  isBanned?: boolean
 }
 
 export interface UserSettings {
@@ -17,3 +19,12 @@ export interface UserSettings {
 }
 
 export type NotificationType = 'success' | 'error' | 'info'
+
+export interface NewsPost {
+  id: number
+  title: string
+  content: string
+  date: string
+  author: string
+  type: 'launcher' | 'website'
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import AnimatedBackground from '../components/AnimatedBackground'
 import '../styles/HomePage.css'
@@ -6,6 +6,44 @@ import '../styles/HomePage.css'
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState('home')
   const [activeFaq, setActiveFaq] = useState<number | null>(null)
+  const [isPreviewExpanded, setIsPreviewExpanded] = useState(false)
+  const [isPreviewMinimized, setIsPreviewMinimized] = useState(false)
+  const [isPreviewClosed, setIsPreviewClosed] = useState(false)
+  const [ramAllocation, setRamAllocation] = useState(4096)
+  const [newsRefresh, setNewsRefresh] = useState(0)
+  
+  // Получаем текущего пользователя для отображения в превью
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null')
+
+  // Обновляем новости при переключении на вкладку News
+  useEffect(() => {
+    if (activeTab === 'news') {
+      setNewsRefresh(prev => prev + 1)
+    }
+  }, [activeTab])
+
+  // Слушаем изменения в localStorage для обновления новостей
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'insideNews') {
+        setNewsRefresh(prev => prev + 1)
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Также проверяем изменения каждые 2 секунды (для изменений в том же окне)
+    const interval = setInterval(() => {
+      if (activeTab === 'news') {
+        setNewsRefresh(prev => prev + 1)
+      }
+    }, 2000)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      clearInterval(interval)
+    }
+  }, [activeTab])
 
   return (
     <div className="home-page">
@@ -16,17 +54,34 @@ export default function HomePage() {
         <nav className="nav">
           <div className="nav-brand">
             <img src="/icon.ico" alt="Inside" width="32" height="32" style={{ borderRadius: '8px' }} />
-            <span className="brand-name">INSIDE</span>
             <span className="version">v3.0.0</span>
           </div>
           <div className="nav-links">
             <a href="#features">Возможности</a>
             <a href="#pricing">Цены</a>
+            <Link to="/news">Новости</Link>
             <a href="#download">Скачать</a>
             <a href="#faq">FAQ</a>
-            <Link to="/auth">Войти</Link>
+            {!currentUser && <Link to="/auth">Войти</Link>}
           </div>
-          <Link to="/auth" className="btn-nav">Личный кабинет</Link>
+          {currentUser ? (
+            <Link to="/dashboard" className="btn-nav">
+              <img 
+                src={currentUser.avatar || '/icon.ico'} 
+                alt="Avatar" 
+                style={{ 
+                  width: '24px', 
+                  height: '24px', 
+                  borderRadius: '50%', 
+                  marginRight: '8px',
+                  objectFit: 'cover'
+                }} 
+              />
+              {currentUser.username}
+            </Link>
+          ) : (
+            <Link to="/auth" className="btn-nav">Личный кабинет</Link>
+          )}
         </nav>
       </header>
 
@@ -35,14 +90,14 @@ export default function HomePage() {
         <div className="hero-content">
           <div className="hero-badge">
             <span className="badge-dot"></span>
-            Версия 3.0.0 уже доступна
+            Версия 3.1.9 уже доступна
           </div>
           <h1 className="hero-title">
             Добро пожаловать в<br />
             <span className="gradient-text">Inside Client</span>
           </h1>
           <p className="hero-subtitle">
-            Продвинутый клиент для Minecraft 1.20.1 с лучшими обходами,<br />
+            Клиент для Minecraft 1.20.1 с лучшими обходами,<br />
             оптимизацией производительности и современным интерфейсом
           </p>
           <div className="hero-buttons">
@@ -75,115 +130,319 @@ export default function HomePage() {
           </div>
         </div>
         
-        {/* Hero Visual - ИСПРАВЛЕНО: теперь переключатели работают */}
+        {/* Hero Visual - Точная копия лаунчера */}
         <div className="hero-visual">
-          <div className="client-preview">
-            <div className="preview-header">
-              <div className="preview-dots">
-                <span></span>
-                <span></span>
-                <span></span>
+          {!isPreviewClosed && (
+            <div className={`launcher-preview ${isPreviewExpanded ? 'expanded' : ''} ${isPreviewMinimized ? 'minimized' : ''}`}>
+              {/* Title Bar */}
+              <div 
+                className="launcher-titlebar"
+                onClick={() => isPreviewMinimized && setIsPreviewMinimized(false)}
+                style={{ cursor: isPreviewMinimized ? 'pointer' : 'default' }}
+              >
+                <div className="titlebar-left">
+                  <svg className="app-logo-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="url(#gradient1)"/>
+                    <path d="M2 17L12 22L22 17V7L12 12L2 7V17Z" fill="url(#gradient2)"/>
+                    <defs>
+                      <linearGradient id="gradient1" x1="2" y1="2" x2="22" y2="12">
+                        <stop offset="0%" stopColor="#8A4BFF"/>
+                        <stop offset="100%" stopColor="#FF6B9D"/>
+                      </linearGradient>
+                      <linearGradient id="gradient2" x1="2" y1="7" x2="22" y2="22">
+                        <stop offset="0%" stopColor="#6C37D7"/>
+                        <stop offset="100%" stopColor="#8A4BFF"/>
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div className="app-logo">INSIDE</div>
+                  <div className="app-version">v3.0.0</div>
+                </div>
+                <div className="titlebar-right">
+                  <div 
+                    className="title-btn expand-btn" 
+                    onClick={() => setIsPreviewExpanded(!isPreviewExpanded)}
+                    title={isPreviewExpanded ? "Уменьшить" : "Развернуть"}
+                  >
+                    {isPreviewExpanded ? (
+                      <svg width="10" height="10" viewBox="0 0 14 14" fill="currentColor">
+                        <path d="M0 0H5V2H2V5H0V0ZM12 0V5H14V0H12ZM12 2V0H14V2H12ZM0 9V14H5V12H2V9H0ZM14 9H12V12H9V14H14V9Z"/>
+                      </svg>
+                    ) : (
+                      <svg width="10" height="10" viewBox="0 0 14 14" fill="currentColor">
+                        <path d="M2 0H0V5H2V2H5V0H2ZM12 0V2H9V0H12ZM14 0H12V2H14V0ZM0 9H2V12H5V14H0V9ZM12 12V14H14V9H12V12Z"/>
+                      </svg>
+                    )}
+                  </div>
+                  <div 
+                    className="title-btn minimize-btn" 
+                    onClick={() => setIsPreviewMinimized(!isPreviewMinimized)}
+                    title={isPreviewMinimized ? "Развернуть" : "Свернуть"}
+                  >
+                    <svg width="10" height="2" viewBox="0 0 14 2" fill="currentColor">
+                      <rect width="14" height="2"/>
+                    </svg>
+                  </div>
+                  <div 
+                    className="title-btn close-btn" 
+                    onClick={() => setIsPreviewClosed(true)}
+                    title="Закрыть"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 14 14" fill="currentColor">
+                      <path d="M14 1.41L12.59 0L7 5.59L1.41 0L0 1.41L5.59 7L0 12.59L1.41 14L7 8.41L12.59 14L14 12.59L8.41 7L14 1.41Z"/>
+                    </svg>
+                  </div>
+                </div>
               </div>
-              <div className="preview-title">Inside Client</div>
-            </div>
-            <div className="preview-content">
-              <div className="preview-sidebar">
+
+            {/* Main Content */}
+            <div className="launcher-main">
+              {/* Sidebar */}
+              <div className="launcher-sidebar">
                 <div 
-                  className={`sidebar-item ${activeTab === 'home' ? 'active' : ''}`}
+                  className={`launcher-nav-item ${activeTab === 'home' ? 'active' : ''}`}
                   onClick={() => setActiveTab('home')}
                 >
-                  Главная
+                  <svg className="nav-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 2L2 8V18C2 18.5304 2.21071 19.0391 2.58579 19.4142C2.96086 19.7893 3.46957 20 4 20H16C16.5304 20 17.0391 19.7893 17.4142 19.4142C17.7893 19.0391 18 18.5304 18 18V8L10 2Z"/>
+                    <path d="M8 20V12H12V20" fill="currentColor"/>
+                  </svg>
+                  <span>Главная</span>
                 </div>
                 <div 
-                  className={`sidebar-item ${activeTab === 'profile' ? 'active' : ''}`}
+                  className={`launcher-nav-item ${activeTab === 'profile' ? 'active' : ''}`}
                   onClick={() => setActiveTab('profile')}
                 >
-                  Профиль
+                  <svg className="nav-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                    <circle cx="10" cy="6" r="4"/>
+                    <path d="M10 12C5.58172 12 2 14.6863 2 18H18C18 14.6863 14.4183 12 10 12Z"/>
+                  </svg>
+                  <span>Профиль</span>
                 </div>
                 <div 
-                  className={`sidebar-item ${activeTab === 'settings' ? 'active' : ''}`}
+                  className={`launcher-nav-item ${activeTab === 'settings' ? 'active' : ''}`}
                   onClick={() => setActiveTab('settings')}
                 >
-                  Настройки
+                  <svg className="nav-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M17.43 10.98c.04-.32.07-.64.07-.98 0-.34-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C12.46 2.18 12.25 2 12 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98 0 .33.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM10 13c-1.65 0-3-1.35-3-3s1.35-3 3-3 3 1.35 3 3-1.35 3-3 3z"/>
+                  </svg>
+                  <span>Настройки</span>
                 </div>
                 <div 
-                  className={`sidebar-item ${activeTab === 'news' ? 'active' : ''}`}
+                  className={`launcher-nav-item ${activeTab === 'news' ? 'active' : ''}`}
                   onClick={() => setActiveTab('news')}
                 >
-                  Новости
+                  <svg className="nav-icon" width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M2 4C2 2.89543 2.89543 2 4 2H16C17.1046 2 18 2.89543 18 4V16C18 17.1046 17.1046 18 16 18H4C2.89543 18 2 17.1046 2 16V4Z"/>
+                    <rect x="5" y="5" width="6" height="4" fill="#0A0A0F"/>
+                    <rect x="5" y="11" width="10" height="1" fill="#0A0A0F"/>
+                    <rect x="5" y="14" width="10" height="1" fill="#0A0A0F"/>
+                  </svg>
+                  <span>Новости</span>
                 </div>
               </div>
-              <div className="preview-main">
+
+              {/* Content Area */}
+              <div className="launcher-content">
                 {activeTab === 'home' && (
-                  <>
-                    <img src="/icon.ico" alt="Inside" className="preview-logo" width="64" height="64" />
-                    <div className="version-badge">1.20.1</div>
-                    <div className="client-title">Inside Client</div>
-                    <div className="feature-list">
-                      <div className="feature-item">Оптимизация производительности</div>
-                      <div className="feature-item">Улучшенная графика</div>
-                      <div className="feature-item">Встроенные моды</div>
-                      <div className="feature-item">Автообновления</div>
+                  <div className="launcher-page">
+                    <div className="page-header">
+                      <h1>Добро пожаловать в Inside Client</h1>
+                      <p>Приятной игры</p>
                     </div>
-                    <div className="launch-button">▶ ЗАПУСТИТЬ</div>
-                  </>
+                    <div className="client-card">
+                      <div className="client-info">
+                        <div className="client-version">
+                          <span className="version-number">1.20.1</span>
+                          <span className="version-label">Клиент</span>
+                        </div>
+                        <div className="client-description">
+                          <h3>Inside Client</h3>
+                          <ul className="feature-list">
+                            <li>Все лучшие функции читов в одном месте</li>
+                            <li>Оптимизированный клиент</li>
+                            <li>Поддержка новых версий игры</li>
+                            <li>Автообновления</li>
+                            <li>Безопасность - нам не нужна плохая репутация</li> 
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                    <button className="launcher-launch-btn">
+                      <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
+                        <path d="M5 4.5L15 10L5 15.5V4.5Z" fill="currentColor"/>
+                      </svg>
+                      Launch
+                    </button>
+                  </div>
                 )}
+
                 {activeTab === 'profile' && (
-                  <div className="tab-content">
-                    <h3>Профиль</h3>
-                    <div className="profile-info">
-                      <div className="info-item">
-                        <span>Имя:</span>
-                        <span>Player</span>
+                  <div className="launcher-page">
+                    <div className="page-header">
+                      <h1>Profile</h1>
+                      <p>Info for your account</p>
+                    </div>
+                    <div className="profile-card">
+                      <div className="profile-avatar-container">
+                        <div className="profile-avatar">
+                          {currentUser?.avatar ? (
+                            <img src={currentUser.avatar} alt="Avatar" />
+                          ) : (
+                            <svg className="avatar-placeholder" width="48" height="48" viewBox="0 0 60 60" fill="currentColor">
+                              <circle cx="30" cy="20" r="12"/>
+                              <path d="M30 35C18 35 10 40 10 50H50C50 40 42 35 30 35Z"/>
+                            </svg>
+                          )}
+                        </div>
                       </div>
-                      <div className="info-item">
-                        <span>Подписка:</span>
-                        <span className="badge-premium">Premium</span>
-                      </div>
-                      <div className="info-item">
-                        <span>Статус:</span>
-                        <span className="badge-active">Активен</span>
+                      <div className="profile-info">
+                        <div className="profile-field">
+                          <label>Nickname:</label>
+                          <span className="profile-value">{currentUser?.username || 'Player'}</span>
+                        </div>
+                        <div className="profile-field">
+                          <label>UID:</label>
+                          <span className="uid-value">AZ-2024-001</span>
+                        </div>
+                        <div className="profile-field">
+                          <label>Status:</label>
+                          <span className="status-active">Активен</span>
+                        </div>
+                        <div className="profile-field">
+                          <label>Subscription:</label>
+                          <span className={`subscription-${currentUser?.subscription || 'free'}`}>
+                            {currentUser?.subscription === 'premium' ? 'Premium' : 
+                             currentUser?.subscription === 'alpha' ? 'Alpha' : 'Free'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 )}
+
                 {activeTab === 'settings' && (
-                  <div className="tab-content">
-                    <h3>Настройки</h3>
-                    <div className="settings-list">
-                      <div className="setting-row">
-                        <span>Автообновление</span>
-                        <div className="toggle-switch active"></div>
+                  <div className="launcher-page">
+                    <div className="page-header">
+                      <h1>Settings</h1>
+                      <p>Launcher and game configuration</p>
+                    </div>
+                    <div className="settings-grid">
+                      <div className="settings-section">
+                        <h3>Game</h3>
+                        <div className="setting-item">
+                          <label className="installation-label">Installation path:</label>
+                          <div className="path-input">
+                            <input type="text" value="C:\Arizon" readOnly />
+                            <button className="browse-btn">Обзор</button>
+                          </div>
+                        </div>
+                        <div className="setting-item">
+                          <label>RAM allocation:</label>
+                          <div className="ram-slider">
+                            <input 
+                              type="range" 
+                              min="1024" 
+                              max="16384" 
+                              step="512" 
+                              value={ramAllocation}
+                              onChange={(e) => setRamAllocation(Number(e.target.value))}
+                            />
+                            <span className="ram-value">{(ramAllocation / 1024).toFixed(1)} GB</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="setting-row">
-                        <span>Уведомления</span>
-                        <div className="toggle-switch active"></div>
-                      </div>
-                      <div className="setting-row">
-                        <span>Темная тема</span>
-                        <div className="toggle-switch active"></div>
+                      <div className="settings-section">
+                        <h3>Launcher</h3>
+                        <div className="setting-item">
+                          <label>Auto-update:</label>
+                          <div className="toggle-switch">
+                            <input type="checkbox" defaultChecked />
+                            <span className="toggle-slider"></span>
+                          </div>
+                        </div>
+                        <div className="setting-item">
+                          <label>Interface sounds:</label>
+                          <div className="toggle-switch">
+                            <input type="checkbox" defaultChecked />
+                            <span className="toggle-slider"></span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 )}
+
                 {activeTab === 'news' && (
-                  <div className="tab-content">
-                    <h3>Новости</h3>
-                    <div className="news-list">
-                      <div className="news-item">
-                        <div className="news-date">14.11.2025</div>
-                        <div className="news-title">Обновление 3.0.0</div>
-                      </div>
-                      <div className="news-item">
-                        <div className="news-date">10.11.2025</div>
-                        <div className="news-title">Новые обходы</div>
-                      </div>
+                  <div className="launcher-page" key={newsRefresh}>
+                    <div className="page-header">
+                      <h1>News</h1>
+                      <p>Latest Inside Client Updates</p>
+                    </div>
+                    <div className="news-container">
+                      {(() => {
+                        try {
+                          const allNews = JSON.parse(localStorage.getItem('insideNews') || '[]')
+                          const launcherNews = allNews.filter((n: any) => n.type === 'launcher')
+                          
+                          if (launcherNews.length === 0) {
+                            return (
+                              <>
+                                <article className="news-item">
+                                  <div className="news-date">November 14, 2025</div>
+                                  <h3>Inside Client 2.0 Release</h3>
+                                  <p>A new Electron-based launcher with an improved interface and performance.</p>
+                                </article>
+                                <article className="news-item">
+                                  <div className="news-date">November 10, 2025</div>
+                                  <h3>Optimization update</h3>
+                                  <p>Improved client performance, added new graphics settings.</p>
+                                </article>
+                              </>
+                            )
+                          }
+                          
+                          return launcherNews.slice(0, 5).map((news: any) => (
+                            <article key={news.id} className="news-item">
+                              <div className="news-date">{new Date(news.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                              <h3>{news.title}</h3>
+                              <p>{news.content}</p>
+                            </article>
+                          ))
+                        } catch (error) {
+                          console.error('Error loading news:', error)
+                          return (
+                            <article className="news-item">
+                              <div className="news-date">November 14, 2025</div>
+                              <h3>Inside Client 2.0 Release</h3>
+                              <p>A new Electron-based launcher with an improved interface and performance.</p>
+                            </article>
+                          )
+                        }
+                      })()}
                     </div>
                   </div>
                 )}
               </div>
             </div>
           </div>
+          )}
+          
+          {/* Кнопка восстановления закрытого окна */}
+          {isPreviewClosed && (
+            <div className="preview-restore-hint">
+              <p>Предпросмотр лаунчера скрыт</p>
+              <button 
+                className="btn btn-secondary btn-small" 
+                onClick={() => {
+                  setIsPreviewClosed(false)
+                  setIsPreviewMinimized(false)
+                }}
+              >
+                Показать снова
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -396,7 +655,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="footer-bottom">
-            <p>&copy; 2024 Inside Client. Все права защищены.</p>
+            <p>&copy; 2025 Inside Client. Все права защищены.</p>
           </div>
         </div>
       </footer>

@@ -18,7 +18,11 @@ export default function DashboardPage() {
   useEffect(() => {
     const userData = getCurrentUser()
     if (!userData) {
-      navigate('/auth')
+      // Проверяем, не был ли пользователь авторизован ранее
+      const rememberMe = localStorage.getItem('rememberMe')
+      if (!rememberMe) {
+        navigate('/auth')
+      }
     } else {
       setUser(userData)
       if (userData.avatar) {
@@ -38,7 +42,7 @@ export default function DashboardPage() {
     const file = e.target.files?.[0]
     if (file && user) {
       const reader = new FileReader()
-      reader.onload = (event) => {
+      reader.onload = async (event) => {
         const avatarUrl = event.target?.result as string
         setAvatarPreview(avatarUrl)
         
@@ -47,7 +51,7 @@ export default function DashboardPage() {
         setCurrentUser(updatedUser)
         
         const db = new Database()
-        db.updateUser(user.id, { avatar: avatarUrl })
+        await db.updateUser(user.id, { avatar: avatarUrl })
         
         setNotification({ message: 'Аватарка загружена!', type: 'success' })
       }
@@ -55,7 +59,7 @@ export default function DashboardPage() {
     }
   }
 
-  const handleSaveSettings = () => {
+  const handleSaveSettings = async () => {
     if (!user) return
 
     const notifications = (document.getElementById('settingNotifications') as HTMLInputElement)?.checked
@@ -75,7 +79,7 @@ export default function DashboardPage() {
     setCurrentUser(updatedUser)
 
     const db = new Database()
-    db.updateUser(user.id, { settings })
+    await db.updateUser(user.id, { settings })
 
     setNotification({ message: 'Настройки сохранены!', type: 'success' })
   }
@@ -130,13 +134,22 @@ export default function DashboardPage() {
           </div>
 
           <nav className="sidebar-nav">
-            <Link to="/" className="nav-item">
+            <Link to="/" className="nav-item" title="Вернуться на главную страницу сайта">
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path d="M3 7L10 2L17 7V17C17 17.5523 16.5523 18 16 18H4C3.44772 18 3 17.5523 3 17V7Z" stroke="currentColor" strokeWidth="2"/>
                 <path d="M7 18V10H13V18" stroke="currentColor" strokeWidth="2"/>
               </svg>
-              Главная
+              На сайт
             </Link>
+            {user?.isAdmin && (
+              <Link to="/admin" className="nav-item admin-link" title="Админ-панель">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M10 2L2 7L10 12L18 7L10 2Z" stroke="currentColor" strokeWidth="2"/>
+                  <path d="M2 12L10 17L18 12" stroke="currentColor" strokeWidth="2"/>
+                </svg>
+                Админ-панель
+              </Link>
+            )}
             <button
               className={`nav-item ${currentPage === 'home' ? 'active' : ''}`}
               onClick={() => setCurrentPage('home')}
