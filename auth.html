@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход / Регистрация - Inside Client</title>
+    <link rel="icon" type="image/x-icon" href="icon.ico">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="auth.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation">
+        <div class="cube"></div>
+        <div class="cube"></div>
+        <div class="cube"></div>
+    </div>
+
+    <!-- Auth Container -->
+    <div class="auth-container">
+        <div class="auth-box">
+            <!-- Logo -->
+            <div class="auth-logo">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                    <rect width="48" height="48" rx="12" fill="url(#gradient)"/>
+                    <path d="M24 12L36 24L24 36L12 24L24 12Z" fill="white"/>
+                    <defs>
+                        <linearGradient id="gradient" x1="0" y1="0" x2="48" y2="48">
+                            <stop offset="0%" stop-color="#A855F7"/>
+                            <stop offset="100%" stop-color="#EC4899"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div class="logo-text">
+                    <span class="brand">INSIDE</span>
+                    <span class="version">v3.0.0</span>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="auth-tabs">
+                <button class="tab-btn active" data-tab="login">Вход</button>
+                <button class="tab-btn" data-tab="register">Регистрация</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form active">
+                <div class="form-group">
+                    <label>
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M16 17V15C16 13.9391 15.5786 12.9217 14.8284 12.1716C14.0783 11.4214 13.0609 11 12 11H8C6.93913 11 5.92172 11.4214 5.17157 12.1716C4.42143 12.9217 4 13.9391 4 15V17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <circle cx="10" cy="5" r="3" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                        Логин или Email
+                    </label>
+                    <input type="text" id="loginUsername" placeholder="Введите логин или email" required>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <rect x="4" y="8" width="12" height="9" rx="2" stroke="currentColor" stroke-width="2"/>
+                            <path d="M7 8V5C7 3.34315 8.34315 2 10 2C11.6569 2 13 3.34315 13 5V8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        Пароль
+                    </label>
+                    <div class="password-input">
+                        <input type="password" id="loginPassword" placeholder="Введите пароль" required>
+                        <button type="button" class="toggle-password">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M10 7C8.34315 7 7 8.34315 7 10C7 11.6569 8.34315 13 10 13C11.6569 13 13 11.6569 13 10C13 8.34315 11.6569 7 10 7Z" stroke="currentColor" stroke-width="2"/>
+                                <path d="M10 3C5 3 2 10 2 10C2 10 5 17 10 17C15 17 18 10 18 10C18 10 15 3 10 3Z" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-options">
+                    <label class="checkbox">
+                        <input type="checkbox" id="rememberMe">
+                        <span class="checkmark"></span>
+                        Запомнить меня
+                    </label>
+                    <a href="#" class="forgot-link">Забыли пароль?</a>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M9 3H4C3.44772 3 3 3.44772 3 4V16C3 16.5523 3.44772 17 4 17H9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M13 13L17 10L13 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M17 10H7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Войти
+                </button>
+            </form>
+
+            <!-- Register Form -->
+            <form id="registerForm" class="auth-form">
+                <div class="form-group">
+                    <label>
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M16 17V15C16 13.9391 15.5786 12.9217 14.8284 12.1716C14.0783 11.4214 13.0609 11 12 11H8C6.93913 11 5.92172 11.4214 5.17157 12.1716C4.42143 12.9217 4 13.9391 4 15V17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <circle cx="10" cy="5" r="3" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                        Логин
+                    </label>
+                    <input type="text" id="regUsername" placeholder="Придумайте логин" required>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <rect x="3" y="5" width="14" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+                            <path d="M3 8L10 12L17 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Email
+                    </label>
+                    <input type="email" id="regEmail" placeholder="Введите email" required>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <rect x="4" y="8" width="12" height="9" rx="2" stroke="currentColor" stroke-width="2"/>
+                            <path d="M7 8V5C7 3.34315 8.34315 2 10 2C11.6569 2 13 3.34315 13 5V8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        Пароль
+                    </label>
+                    <div class="password-input">
+                        <input type="password" id="regPassword" placeholder="Придумайте пароль" required>
+                        <button type="button" class="toggle-password">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M10 7C8.34315 7 7 8.34315 7 10C7 11.6569 8.34315 13 10 13C11.6569 13 13 11.6569 13 10C13 8.34315 11.6569 7 10 7Z" stroke="currentColor" stroke-width="2"/>
+                                <path d="M10 3C5 3 2 10 2 10C2 10 5 17 10 17C15 17 18 10 18 10C18 10 15 3 10 3Z" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <rect x="4" y="8" width="12" height="9" rx="2" stroke="currentColor" stroke-width="2"/>
+                            <path d="M7 8V5C7 3.34315 8.34315 2 10 2C11.6569 2 13 3.34315 13 5V8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        Подтвердите пароль
+                    </label>
+                    <input type="password" id="regPasswordConfirm" placeholder="Повторите пароль" required>
+                </div>
+
+                <label class="checkbox">
+                    <input type="checkbox" id="agreeTerms" required>
+                    <span class="checkmark"></span>
+                    Я согласен с <a href="#">условиями использования</a>
+                </label>
+
+                <button type="submit" class="btn btn-primary btn-full">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M16 17V15C16 13.9391 15.5786 12.9217 14.8284 12.1716C14.0783 11.4214 13.0609 11 12 11H8C6.93913 11 5.92172 11.4214 5.17157 12.1716C4.42143 12.9217 4 13.9391 4 15V17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="10" cy="5" r="3" stroke="currentColor" stroke-width="2"/>
+                        <path d="M10 8V12M10 12L8 10M10 12L12 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    Зарегистрироваться
+                </button>
+            </form>
+
+            <!-- Back to Home -->
+            <a href="index.html" class="back-link">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M10 12L6 8L10 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Вернуться на главную
+            </a>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+</body>
+</html>
