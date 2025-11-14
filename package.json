@@ -1,0 +1,35 @@
+{
+  "name": "web",
+  "version": "1.0.0",
+  "description": "```\r inside-website/\r ├── index.html          # Главная страница\r ├── auth.html           # Страница входа/регистрации\r ├── dashboard.html      # Личный кабинет\r ├── style.css           # Основные стили\r ├── auth.css            # Стили авторизации\r ├── dashboard.css       # Стили личного кабинета\r ├── script.js           # Основной JavaScript\r ├── auth.js             # JavaScript авторизации\r ├── dashboard.js        # JavaScript личного кабинета\r ├── icon.ico            # ⚠️ ПОМЕСТИТЕ СЮДА ВАШ FAVICON\r └── README.md           # Этот файл\r ```",
+  "main": "auth.js",
+  "scripts": {
+    "dev": "vite --config vite.config.ts",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zxctehas1337/inside.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/zxctehas1337/inside/issues"
+  },
+  "homepage": "https://github.com/zxctehas1337/inside#readme",
+  "devDependencies": {
+    "@types/react": "^19.2.4",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.2"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.6"
+  }
+}

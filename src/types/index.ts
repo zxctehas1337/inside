@@ -1,0 +1,19 @@
+export interface User {
+  id: number
+  username: string
+  email: string
+  password: string
+  subscription: 'free' | 'premium' | 'alpha'
+  registeredAt: string
+  avatar?: string
+  settings: UserSettings
+}
+
+export interface UserSettings {
+  notifications: boolean
+  autoUpdate: boolean
+  theme: 'dark' | 'light' | 'auto'
+  language: 'ru' | 'en' | 'uk'
+}
+
+export type NotificationType = 'success' | 'error' | 'info'

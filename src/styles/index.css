@@ -1,0 +1,27 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg-primary: #0A0A0F;
+    --bg-secondary: #12121A;
+    --bg-tertiary: #1A1A24;
+    --purple-500: #A855F7;
+    --purple-600: #9333EA;
+    --pink-500: #EC4899;
+    --text-primary: #FFFFFF;
+    --text-secondary: #A0A0B0;
+    --text-tertiary: #6B6B80;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    overflow-x: hidden;
+    line-height: 1.6;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
