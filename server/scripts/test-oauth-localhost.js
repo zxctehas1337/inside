@@ -7,7 +7,7 @@ const http = require('http');
 const { exec } = require('child_process');
 
 const OAUTH_PORT = 3000;
-const API_URL = 'https://insidenew.onrender.com';
+const API_URL = 'https://oneshakedown.onrender.com';
 
 console.log('🧪 Тест OAuth flow с локальным сервером\n');
 

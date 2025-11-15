@@ -48,7 +48,7 @@ export default function AuthPage() {
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://insidenew.onrender.com'}/api/auth/admin`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://oneshakedown.onrender.com'}/api/auth/admin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -102,7 +102,7 @@ export default function AuthPage() {
             {!isAdminMode ? (
               <>
                 <a 
-                  href={`${import.meta.env.VITE_API_URL || 'https://insidenew.onrender.com'}/api/auth/google`}
+                  href={`${import.meta.env.VITE_API_URL || 'https://oneshakedown.onrender.com'}/api/auth/google`}
                   className="btn btn-google btn-full"
                 >
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">

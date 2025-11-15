@@ -20,7 +20,7 @@ const pool = new Pool({
 
 // Middleware - настройка CORS для продакшн
 app.use(cors({
-  origin: ['https://insidenew.onrender.com', 'http://localhost:5173', 'http://localhost:8080'],
+  origin: ['https://oneshakedown.onrender.com', 'http://localhost:5173', 'http://localhost:8080'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -585,10 +585,10 @@ app.listen(PORT, () => {
   console.log('   POST /api/news - Создание новости');
   console.log('   DELETE /api/news/:id - Удаление новости\n');
   console.log('🔗 Authorized redirect URIs:');
-  console.log(`   ${process.env.GOOGLE_CALLBACK_URL || 'https://insidenew.onrender.com/api/auth/google/callback'}`);
+  console.log(`   ${process.env.GOOGLE_CALLBACK_URL || 'https://oneshakedown.onrender.com/api/auth/google/callback'}`);
   console.log('   http://localhost:8080/api/auth/google/callback\n');
   console.log('🌐 Authorized JavaScript origins:');
-  console.log('   https://insidenew.onrender.com');
+  console.log('   https://oneshakedown.onrender.com');
   console.log('   http://localhost:8080\n');
   console.log('═══════════════════════════════════════════════════════════════\n');
 });

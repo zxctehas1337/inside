@@ -1,5 +1,5 @@
 // API для работы с backend
-const API_URL = import.meta.env.VITE_API_URL || 'https://insidenew.onrender.com'
+const API_URL = import.meta.env.VITE_API_URL || 'https://oneshakedown.onrender.com'
 console.log('🔧 API_URL configured as:', API_URL)
 
 export interface ApiResponse<T> {

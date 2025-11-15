@@ -7,6 +7,6 @@ export default defineConfig({
     port: 3000
   },
   preview: {
-    allowedHosts: ['insidenew.onrender.com']
+    allowedHosts: ['https://oneshakedown.onrender.com']
   }
 })
