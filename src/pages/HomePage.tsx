@@ -15,38 +15,6 @@ export default function HomePage() {
   const [ramAllocation, setRamAllocation] = useState(4096)
   const [launcherNews, setLauncherNews] = useState<any[]>([])
   const currentUser = getCurrentUser()
-  const releaseHighlights = [
-    {
-      title: 'Новый визуал',
-      description: 'Главная вкладка лаунчера получила ровную сетку и новые карточки'
-    },
-    {
-      title: 'Быстрые действия',
-      description: 'Добавлены пресеты для проверки обновлений и открытия каталога клиента'
-    },
-    {
-      title: 'Состояние сервисов',
-      description: 'Мониторинг серверов авторизации, CDN и обновлений прямо в предпросмотре'
-    }
-  ]
-  const serviceStatuses = [
-    { name: 'Auth', status: 'работает', state: 'ok' },
-    { name: 'CDN', status: 'стабильно', state: 'ok' },
-    { name: 'Обновления', status: 'очередь 2 задачи', state: 'warning' },
-    { name: 'Proxy', status: 'резерв', state: 'idle' }
-  ]
-  const quickActions = [
-    { label: 'Проверить обновления', hint: 'v3.1.9 актуальна' },
-    { label: 'Открыть папку клиента', hint: 'C: \\ Arizon' },
-    { label: 'Показать патчноуты', hint: '11 изменений' }
-  ]
-  const ramInGb = (ramAllocation / 1024).toFixed(1)
-  const playerName = currentUser?.username || 'Player'
-  const subscriptionLabel = currentUser?.subscription === 'premium'
-    ? 'Premium'
-    : currentUser?.subscription === 'alpha'
-      ? 'Alpha'
-      : 'Free'
 
   // Загружаем новости при переключении на вкладку News
   useEffect(() => {
@@ -277,166 +245,32 @@ export default function HomePage() {
               <div className="launcher-content">
                 {activeTab === 'home' && (
                   <div className="launcher-page launcher-home">
-                    <div className="home-hero">
-                      <div>
-                        <p className="home-eyebrow">ShakeDown Client Launcher</p>
-                        <h1>Главная панель</h1>
-                        <p className="home-subtitle">Проверяем состояние клиента перед запуском игры</p>
-                        <div className="home-hero-tags">
-                          <span className="home-chip accent">v3.1.9 Stable</span>
-                          <span className="home-chip success">Сервера работают</span>
-                        </div>
+                    <div className="home-center">
+                      <div className="home-logo">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none">
+                          <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="url(#gradient1)"/>
+                          <path d="M2 17L12 22L22 17V7L12 12L2 7V17Z" fill="url(#gradient2)"/>
+                          <defs>
+                            <linearGradient id="gradient1" x1="2" y1="2" x2="22" y2="12">
+                              <stop offset="0%" stopColor="#8A4BFF"/>
+                              <stop offset="100%" stopColor="#FF6B9D"/>
+                            </linearGradient>
+                            <linearGradient id="gradient2" x1="2" y1="7" x2="22" y2="22">
+                              <stop offset="0%" stopColor="#6C37D7"/>
+                              <stop offset="100%" stopColor="#8A4BFF"/>
+                            </linearGradient>
+                          </defs>
+                        </svg>
                       </div>
-                      <div className="home-hero-meta">
-                        <div>
-                          <span>Следующее обновление</span>
-                          <strong>18 ноября</strong>
-                        </div>
-                        <div>
-                          <span>Последний запуск</span>
-                          <strong>Сегодня, 11:42</strong>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="home-overview-grid">
-                      <div className="home-card version-card">
-                        <div className="version-top">
-                          <div>
-                            <p className="label">Версия клиента</p>
-                            <h3>1.20.1</h3>
-                          </div>
-                          <span className="home-chip accent">Готов к запуску</span>
-                        </div>
-                        <div className="version-meta">
-                          <div>
-                            <span className="label">Обновлено</span>
-                            <strong>15 ноя, 14:00</strong>
-                          </div>
-                          <div>
-                            <span className="label">Размер</span>
-                            <strong>312 МБ</strong>
-                          </div>
-                        </div>
-                        <div className="version-footer">
-                          <span>Патчноуты: 3.1.9 «Aurora»</span>
-                        </div>
-                      </div>
-
-                      <div className="home-card player-card">
-                        <div className="player-info">
-                          <div className="player-avatar">
-                            <img src={currentUser?.avatar || '/icon.ico'} alt="Avatar" />
-                          </div>
-                          <div>
-                            <p className="label">Профиль</p>
-                            <h3>{playerName}</h3>
-                            <span className="home-chip subtle">{subscriptionLabel}</span>
-                          </div>
-                        </div>
-                        <div className="player-meta">
-                          <div>
-                            <span className="label">UID</span>
-                            <strong>{currentUser?.uid || `AZ-${new Date(currentUser?.registeredAt || Date.now()).getFullYear()}-${String(currentUser?.id || 1).padStart(3, '0')}`}</strong>
-                          </div>
-                          <div>
-                            <span className="label">Статус</span>
-                            <span className="status-pill ok">Активен</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="home-card system-card">
-                        <p className="label">Оптимизация</p>
-                        <h3>Профиль «Balanced»</h3>
-                        <div className="system-metrics">
-                          <div>
-                            <span>FPS Boost</span>
-                            <strong>+45%</strong>
-                          </div>
-                          <div>
-                            <span>Ping Guard</span>
-                            <strong>Stable</strong>
-                          </div>
-                          <div>
-                            <span>Shader Pack</span>
-                            <strong>ShakeDown Neon</strong>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="home-panels-grid">
-                      <section className="home-panel release-panel">
-                        <div className="panel-header">
-                          <span className="panel-badge">Что нового</span>
-                          <h3>ShakeDown Client 3.1.9</h3>
-                        </div>
-                        <ul className="release-list">
-                          {releaseHighlights.map((item) => (
-                            <li key={item.title}>
-                              <strong>{item.title}</strong>
-                              <p>{item.description}</p>
-                            </li>
-                          ))}
-                        </ul>
-                      </section>
-
-                      <section className="home-panel status-panel">
-                        <div className="panel-header">
-                          <h3>Состояние сервисов</h3>
-                        </div>
-                        <ul className="status-list">
-                          {serviceStatuses.map((service) => (
-                            <li key={service.name}>
-                              <span>{service.name}</span>
-                              <span className={`status-pill ${service.state}`}>{service.status}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </section>
-
-                      <section className="home-panel quick-panel">
-                        <div className="panel-header">
-                          <h3>Быстрые действия</h3>
-                        </div>
-                        <div className="quick-actions">
-                          {quickActions.map((action) => (
-                            <button key={action.label} className="quick-action-btn">
-                              <span>{action.label}</span>
-                              <small>{action.hint}</small>
-                            </button>
-                          ))}
-                        </div>
-                      </section>
-
-                      <section className="home-panel launch-panel">
-                        <div className="panel-header">
-                          <h3>Запуск клиента</h3>
-                          <p>Всё готово к игре</p>
-                        </div>
-                        <div className="launch-meta">
-                          <div>
-                            <span className="label">Память</span>
-                            <strong>{ramInGb} GB</strong>
-                          </div>
-                          <div>
-                            <span className="label">Путь</span>
-                            <strong>C: \\ Arizon</strong>
-                          </div>
-                          <div>
-                            <span className="label">Сборка</span>
-                            <strong>Aurora</strong>
-                          </div>
-                        </div>
-                        <button className="launcher-launch-btn home-launch-btn">
-                          <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-                            <path d="M5 4.5L15 10L5 15.5V4.5Z" fill="currentColor"/>
-                          </svg>
-                          Запустить клиент
-                        </button>
-                        <p className="launch-hint">Все зависимости установлены, античиты отключены</p>
-                      </section>
+                      
+                      <h1 className="home-title">ShakeDown Client</h1>
+                      
+                      <button className="home-launch-btn">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                          <path d="M5 4.5L15 10L5 15.5V4.5Z" fill="currentColor"/>
+                        </svg>
+                        Запустить
+                      </button>
                     </div>
                   </div>
                 )}
