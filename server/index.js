@@ -697,6 +697,33 @@ app.delete('/api/users/:id/avatar', async (req, res) => {
   }
 });
 
+// ============= LAUNCHER UPDATES API =============
+
+// Раздача обновлений для лаунчера
+app.use('/updates', express.static(path.join(__dirname, 'updates')));
+
+// Информация о последней версии (для проверки обновлений)
+app.get('/api/launcher/version', async (req, res) => {
+  try {
+    const fs = require('fs');
+    const ymlPath = path.join(__dirname, 'updates', 'latest.yml');
+    
+    if (!fs.existsSync(ymlPath)) {
+      return res.json({ 
+        success: false, 
+        message: 'Файл обновления не найден' 
+      });
+    }
+    
+    const ymlContent = fs.readFileSync(ymlPath, 'utf8');
+    res.set('Content-Type', 'text/yaml');
+    res.send(ymlContent);
+  } catch (error) {
+    console.error('❌ Ошибка получения версии:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
+  }
+});
+
 // ============= NEWS API =============
 
 // Получение всех новостей

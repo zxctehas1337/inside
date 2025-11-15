@@ -45,3 +45,9 @@ Launcher/
 Launcher
 electron-launcher/
 111
+
+# Launcher updates (keep folder, ignore files)
+server/updates/*.exe
+server/updates/*.yml
+!server/updates/.gitkeep
+!server/updates/README.md
