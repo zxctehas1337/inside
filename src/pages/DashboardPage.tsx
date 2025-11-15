@@ -184,9 +184,9 @@ export default function DashboardPage() {
         {/* Sidebar */}
         <aside className="dashboard-sidebar">
           <div className="sidebar-header">
-            <img src="/icon.ico" alt="Inside Client" width="40" height="40" style={{ borderRadius: '8px' }} />
+            <img src="/icon.ico" alt="ShakeDown Client" width="40" height="40" style={{ borderRadius: '8px' }} />
             <div>
-              <div className="brand">INSIDE</div>
+              <div className="brand">SHAKEDOWN</div>
               <div className="version">v3.1.9</div>
             </div>
           </div>
@@ -260,7 +260,7 @@ export default function DashboardPage() {
             <div className="page active">
               <div className="page-header">
                 <h1>Добро пожаловать, {user.username}!</h1>
-                <p>Управляйте своим аккаунтом Inside Client</p>
+                <p>Управляйте своим аккаунтом ShakeDown Client</p>
               </div>
 
               <div className="stats-grid">

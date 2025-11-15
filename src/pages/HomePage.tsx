@@ -80,7 +80,7 @@ export default function HomePage() {
       <header className="header">
         <nav className="nav">
           <div className="nav-brand">
-            <img src="/icon.ico" alt="Inside" width="32" height="32" style={{ borderRadius: '8px' }} />
+            <img src="/icon.ico" alt="ShakeDown" width="32" height="32" style={{ borderRadius: '8px' }} />
             <span className="version">v3.1.9</span>
           </div>
           <div className="nav-links">
@@ -121,7 +121,7 @@ export default function HomePage() {
           </div>
           <h1 className="hero-title">
             Добро пожаловать в<br />
-            <span className="gradient-text">Inside Client</span>
+            <span className="gradient-text">ShakeDown Client</span>
           </h1>
           <p className="hero-subtitle">
             Клиент для Minecraft 1.20.1 с лучшими обходами,<br />
@@ -182,7 +182,7 @@ export default function HomePage() {
                       </linearGradient>
                     </defs>
                   </svg>
-                  <div className="app-logo">INSIDE</div>
+                  <div className="app-logo">SHAKEDOWN</div>
                   <div className="app-version">v3.1.9</div>
                 </div>
                 <div className="titlebar-right">
@@ -279,7 +279,7 @@ export default function HomePage() {
                   <div className="launcher-page launcher-home">
                     <div className="home-hero">
                       <div>
-                        <p className="home-eyebrow">Inside Client Launcher</p>
+                        <p className="home-eyebrow">ShakeDown Client Launcher</p>
                         <h1>Главная панель</h1>
                         <p className="home-subtitle">Проверяем состояние клиента перед запуском игры</p>
                         <div className="home-hero-tags">
@@ -360,7 +360,7 @@ export default function HomePage() {
                           </div>
                           <div>
                             <span>Shader Pack</span>
-                            <strong>Inside Neon</strong>
+                            <strong>ShakeDown Neon</strong>
                           </div>
                         </div>
                       </div>
@@ -370,7 +370,7 @@ export default function HomePage() {
                       <section className="home-panel release-panel">
                         <div className="panel-header">
                           <span className="panel-badge">Что нового</span>
-                          <h3>Inside Client 3.1.9</h3>
+                          <h3>ShakeDown Client 3.1.9</h3>
                         </div>
                         <ul className="release-list">
                           {releaseHighlights.map((item) => (
@@ -541,14 +541,14 @@ export default function HomePage() {
                   <div className="launcher-page">
                     <div className="page-header">
                       <h1>News</h1>
-                      <p>Latest Inside Client Updates</p>
+                      <p>Latest ShakeDown Client Updates</p>
                     </div>
                     <div className="news-container">
                       {launcherNews.length === 0 ? (
                         <>
                           <article className="news-item">
                             <div className="news-date">November 14, 2025</div>
-                            <h3>Inside Client 2.0 Release</h3>
+                            <h3>ShakeDown Client 2.0 Release</h3>
                             <p>A new Electron-based launcher with an improved interface and performance.</p>
                           </article>
                           <article className="news-item">
@@ -600,7 +600,7 @@ export default function HomePage() {
         <div className="container">
           <div className="section-header">
             <span className="section-badge">Возможности</span>
-            <h2>Почему выбирают <span className="gradient-text">Inside</span>?</h2>
+            <h2>Почему выбирают <span className="gradient-text">ShakeDown</span>?</h2>
             <p>Максимальная производительность и надежность для вашей игры</p>
           </div>
           <div className="features-grid">
@@ -778,7 +778,7 @@ export default function HomePage() {
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path d="M12 4V20M12 20L18 14M12 20L6 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
-              Скачать Inside Client v3.1.9
+              Скачать ShakeDown Client v3.1.9
             </a>
             <div className="download-info">
               <span>Windows 10/11 • Minecraft 1.20.1</span>
@@ -793,14 +793,14 @@ export default function HomePage() {
           <div className="section-header">
             <span className="section-badge">FAQ</span>
             <h2>Часто задаваемые <span className="gradient-text">вопросы</span></h2>
-            <p>Ответы на популярные вопросы о Inside Client</p>
+            <p>Ответы на популярные вопросы о ShakeDown Client</p>
           </div>
           <div className="faq-grid">
             {[
-              { q: 'Как установить Inside Client?', a: 'Скачайте лаунчер с нашего сайта, запустите его и следуйте инструкциям.' },
-              { q: 'Безопасен ли Inside Client?', a: 'Да, абсолютно безопасен! Мы используем современные методы защиты.' },
+              { q: 'Как установить ShakeDown Client?', a: 'Скачайте лаунчер с нашего сайта, запустите его и следуйте инструкциям.' },
+              { q: 'Безопасен ли ShakeDown Client?', a: 'Да, абсолютно безопасен! Мы используем современные методы защиты.' },
               { q: 'Какие версии Minecraft поддерживаются?', a: 'В данный момент поддерживается Minecraft 1.20.1.' },
-              { q: 'Можно ли использовать на серверах?', a: 'Да, Inside Client имеет продвинутые обходы античитов.' },
+              { q: 'Можно ли использовать на серверах?', a: 'Да, ShakeDown Client имеет продвинутые обходы античитов.' },
               { q: 'Как получить поддержку?', a: 'Вы можете обратиться в наш Discord или Telegram.' },
               { q: 'Чем отличаются тарифы?', a: 'Бесплатная версия имеет базовый функционал. Премиум дает полный доступ.' }
             ].map((faq, i) => (
@@ -826,7 +826,7 @@ export default function HomePage() {
           <div className="footer-content">
             <div className="footer-brand">
               <div className="logo-section">
-                <div className="brand-name">INSIDE</div>
+                <div className="brand-name">SHAKEDOWN</div>
                 <div className="version">v3.1.9</div>
               </div>
             </div>
@@ -845,7 +845,7 @@ export default function HomePage() {
             </div>
           </div>
           <div className="footer-bottom">
-            <p>&copy; 2025 Inside Client. Все права защищены.</p>
+            <p>&copy; 2025 ShakeDown Client. Все права защищены.</p>
           </div>
         </div>
       </footer>

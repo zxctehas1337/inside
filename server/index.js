@@ -161,8 +161,8 @@ async function initDatabase() {
 // Автоматическое создание администратора при запуске
 async function createDefaultAdmin() {
   try {
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@inside.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'INSIDE-PROJECT-EASY';
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@shakedown.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'SHAKEDOWN-PROJECT-EASY';
     const adminUsername = process.env.ADMIN_USERNAME || 'admin';
 
     // Проверяем, существует ли уже администратор
@@ -569,7 +569,7 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, () => {
   console.log('\n╔════════════════════════════════════════════════════════════╗');
-  console.log('║                  🚀 INSIDE Server v3.1.0                  ║');
+  console.log('║              🚀 ShakeDown Server v3.1.0                   ║');
   console.log('╚════════════════════════════════════════════════════════════╝\n');
   console.log(`✅ Сервер запущен на порту ${PORT}`);
   console.log(`🔐 Google OAuth: ${process.env.GOOGLE_CLIENT_ID ? 'Настроен' : 'Не настроен'}`);

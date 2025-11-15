@@ -43,7 +43,7 @@ export default function NewsPage() {
         <nav className="nav">
           <div className="nav-brand">
             <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
-              <img src="/icon.ico" alt="Inside" width="32" height="32" style={{ borderRadius: '8px' }} />
+              <img src="/icon.ico" alt="ShakeDown" width="32" height="32" style={{ borderRadius: '8px' }} />
               <span className="version">v3.1.9</span>
             </Link>
           </div>
@@ -77,7 +77,7 @@ export default function NewsPage() {
       <section className="news-hero">
         <div className="container">
           <div className="news-hero-content">
-            <h1>Новости <span className="gradient-text">Inside Client</span></h1>
+            <h1>Новости <span className="gradient-text">ShakeDown Client</span></h1>
             <p>Последние обновления, анонсы и новости проекта</p>
           </div>
           
@@ -158,8 +158,8 @@ export default function NewsPage() {
         <div className="container">
           <div className="footer-content">
             <div className="footer-brand">
-              <img src="/icon.ico" alt="Inside" width="32" height="32" style={{ borderRadius: '8px' }} />
-              <span>Inside Client</span>
+              <img src="/icon.ico" alt="ShakeDown" width="32" height="32" style={{ borderRadius: '8px' }} />
+              <span>ShakeDown Client</span>
             </div>
             <div className="footer-links">
               <Link to="/">Главная</Link>
@@ -168,7 +168,7 @@ export default function NewsPage() {
             </div>
           </div>
           <div className="footer-bottom">
-            <p>© 2025 Inside Client. Все права защищены.</p>
+            <p>© 2025 ShakeDown Client. Все права защищены.</p>
           </div>
         </div>
       </footer>

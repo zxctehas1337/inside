@@ -225,7 +225,7 @@ export default function AdminPage() {
             </defs>
           </svg>
           <div>
-            <h1>Inside</h1>
+            <h1>ShakeDown</h1>
             <span>Админ-панель</span>
           </div>
         </div>

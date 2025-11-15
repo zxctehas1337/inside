@@ -86,9 +86,9 @@ export default function AuthPage() {
       <div className="auth-container">
         <div className="auth-box">
           <div className="auth-logo">
-            <img src="/icon.ico" alt="Inside" width="48" height="48" style={{ borderRadius: '12px' }} />
+            <img src="/icon.ico" alt="ShakeDown" width="48" height="48" style={{ borderRadius: '12px' }} />
             <div className="logo-text">
-              <span className="brand">INSIDE</span>
+              <span className="brand">SHAKEDOWN</span>
               <span className="version">v3.1.9</span>
             </div>
           </div>
