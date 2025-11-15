@@ -66,6 +66,9 @@ passport.use(new GoogleStrategy({
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
+      // Получаем аватарку из Google профиля
+      const avatar = profile.photos && profile.photos.length > 0 ? profile.photos[0].value : null;
+      
       // Проверяем, существует ли пользователь с таким Google ID
       let result = await pool.query(
         'SELECT * FROM users WHERE google_id = $1',
@@ -73,8 +76,12 @@ passport.use(new GoogleStrategy({
       );
 
       if (result.rows.length > 0) {
-        // Пользователь существует
-        return done(null, result.rows[0]);
+        // Обновляем аватарку при каждом входе
+        const updateResult = await pool.query(
+          'UPDATE users SET avatar = $1 WHERE google_id = $2 RETURNING *',
+          [avatar, profile.id]
+        );
+        return done(null, updateResult.rows[0]);
       }
 
       // Проверяем, существует ли пользователь с таким email
@@ -84,24 +91,36 @@ passport.use(new GoogleStrategy({
       );
 
       if (result.rows.length > 0) {
-        // Обновляем существующего пользователя, добавляя Google ID
+        // Обновляем существующего пользователя, добавляя Google ID и аватарку
         const updateResult = await pool.query(
-          'UPDATE users SET google_id = $1, email_verified = true WHERE id = $2 RETURNING *',
-          [profile.id, result.rows[0].id]
+          'UPDATE users SET google_id = $1, email_verified = true, avatar = $2 WHERE id = $3 RETURNING *',
+          [profile.id, avatar, result.rows[0].id]
         );
         return done(null, updateResult.rows[0]);
       }
 
       // Создаем нового пользователя
       const username = profile.emails[0].value.split('@')[0] + '_' + Math.floor(Math.random() * 1000);
+      
+      // Сначала создаем пользователя без UID
       const newUserResult = await pool.query(
-        `INSERT INTO users (username, email, password, google_id, email_verified, subscription) 
-         VALUES ($1, $2, $3, $4, true, 'free') 
+        `INSERT INTO users (username, email, password, google_id, email_verified, subscription, avatar) 
+         VALUES ($1, $2, $3, $4, true, 'free', $5) 
          RETURNING *`,
-        [username, profile.emails[0].value, '', profile.id]
+        [username, profile.emails[0].value, '', profile.id, avatar]
+      );
+      
+      // Генерируем UID на основе года регистрации и ID
+      const year = new Date(newUserResult.rows[0].registered_at).getFullYear();
+      const uid = `AZ-${year}-${String(newUserResult.rows[0].id).padStart(3, '0')}`;
+      
+      // Обновляем пользователя с UID
+      const updatedUserResult = await pool.query(
+        'UPDATE users SET uid = $1 WHERE id = $2 RETURNING *',
+        [uid, newUserResult.rows[0].id]
       );
 
-      return done(null, newUserResult.rows[0]);
+      return done(null, updatedUserResult.rows[0]);
     } catch (error) {
       return done(error, null);
     }
@@ -126,15 +145,26 @@ async function initDatabase() {
         is_admin BOOLEAN DEFAULT false,
         is_banned BOOLEAN DEFAULT false,
         email_verified BOOLEAN DEFAULT false,
+        avatar TEXT,
+        uid VARCHAR(50) UNIQUE,
         settings JSONB DEFAULT '{"notifications": true, "autoUpdate": true, "theme": "dark", "language": "ru"}'::jsonb
       )
     `);
     
-    // Добавляем колонку google_id для существующих таблиц
+    // Добавляем колонки для существующих таблиц
     await pool.query(`
       ALTER TABLE users 
       ADD COLUMN IF NOT EXISTS google_id VARCHAR(255) UNIQUE,
-      ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false
+      ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS avatar TEXT,
+      ADD COLUMN IF NOT EXISTS uid VARCHAR(50) UNIQUE
+    `);
+    
+    // Генерируем UID для существующих пользователей без UID
+    await pool.query(`
+      UPDATE users 
+      SET uid = 'AZ-' || TO_CHAR(registered_at, 'YYYY') || '-' || LPAD(id::text, 3, '0')
+      WHERE uid IS NULL
     `);
     
     // Создаем таблицу новостей
@@ -165,32 +195,48 @@ async function createDefaultAdmin() {
     const adminPassword = process.env.ADMIN_PASSWORD || 'SHAKEDOWN-PROJECT-EASY';
     const adminUsername = process.env.ADMIN_USERNAME || 'admin';
 
+    console.log('🔧 Настройка администратора...');
+    console.log(`   Email: ${adminEmail}`);
+    console.log(`   Username: ${adminUsername}`);
+    console.log(`   Password: ${adminPassword}`);
+
     // Проверяем, существует ли уже администратор по email или username
     const checkResult = await pool.query(
-      'SELECT * FROM users WHERE email = $1 OR username = $2',
+      'SELECT id, username, email, password, is_admin FROM users WHERE email = $1 OR username = $2',
       [adminEmail, adminUsername]
     );
 
     if (checkResult.rows.length > 0) {
+      const existingUser = checkResult.rows[0];
+      console.log(`📝 Найден существующий пользователь: ${existingUser.username} (ID: ${existingUser.id})`);
+      console.log(`   Текущий пароль: ${existingUser.password || 'не установлен'}`);
+      console.log(`   Администратор: ${existingUser.is_admin ? 'да' : 'нет'}`);
+      
       // Обновляем существующего пользователя, делая его администратором
-      await pool.query(
-        'UPDATE users SET is_admin = true, password = $1, email_verified = true WHERE email = $2 OR username = $3',
+      const updateResult = await pool.query(
+        'UPDATE users SET is_admin = true, password = $1, email_verified = true WHERE email = $2 OR username = $3 RETURNING id, username, email, password, is_admin',
         [adminPassword, adminEmail, adminUsername]
       );
-      console.log('✅ Администратор обновлен:', adminEmail);
+      
+      console.log('✅ Администратор обновлен:', updateResult.rows[0].email);
+      console.log(`   Новый пароль: ${updateResult.rows[0].password}`);
     } else {
       // Создаем нового администратора
-      await pool.query(
+      const insertResult = await pool.query(
         `INSERT INTO users (username, email, password, is_admin, email_verified, subscription) 
-         VALUES ($1, $2, $3, true, true, 'premium')`,
+         VALUES ($1, $2, $3, true, true, 'premium')
+         RETURNING id, username, email, password, is_admin`,
         [adminUsername, adminEmail, adminPassword]
       );
-      console.log('✅ Администратор создан:', adminEmail);
+      
+      console.log('✅ Администратор создан:', insertResult.rows[0].email);
+      console.log(`   ID: ${insertResult.rows[0].id}`);
+      console.log(`   Пароль: ${insertResult.rows[0].password}`);
     }
 
-    console.log('📋 Данные для входа администратора:');
+    console.log('\n📋 Данные для входа администратора:');
     console.log(`   Email: ${adminEmail}`);
-    console.log(`   Password: ${adminPassword}`);
+    console.log(`   Password: ${adminPassword}\n`);
   } catch (error) {
     console.error('❌ Ошибка создания администратора:', error);
   }
@@ -249,6 +295,8 @@ app.get('/api/auth/google/callback',
       registeredAt: req.user.registered_at,
       isAdmin: req.user.is_admin,
       isBanned: req.user.is_banned,
+      avatar: req.user.avatar,
+      uid: req.user.uid,
       settings: req.user.settings
     };
     
@@ -275,27 +323,37 @@ app.get('/api/auth/google/callback',
 app.post('/api/auth/admin', async (req, res) => {
   const { email, password } = req.body;
 
+  console.log(`🔐 Попытка входа администратора: email=${email}`);
+
   try {
+    // Получаем пользователя с паролем в одном запросе
     const result = await pool.query(
-      'SELECT id, username, email, subscription, registered_at, is_admin, is_banned, settings FROM users WHERE email = $1 AND is_admin = true',
+      'SELECT id, username, email, password, subscription, registered_at, is_admin, is_banned, avatar, uid, settings FROM users WHERE email = $1 AND is_admin = true',
       [email]
     );
 
     if (result.rows.length === 0) {
+      console.log(`❌ Администратор не найден: ${email}`);
       return res.json({ success: false, message: 'Администратор не найден' });
     }
 
     const dbUser = result.rows[0];
+    console.log(`✅ Администратор найден: ${dbUser.username} (ID: ${dbUser.id})`);
+    console.log(`🔑 Пароль в БД: ${dbUser.password ? 'установлен' : 'не установлен'}`);
+    console.log(`🔑 Введенный пароль: ${password}`);
 
-    // Проверяем пароль (если он установлен)
-    const passwordResult = await pool.query(
-      'SELECT password FROM users WHERE id = $1',
-      [dbUser.id]
-    );
+    // Проверяем пароль
+    if (!dbUser.password) {
+      console.log(`❌ У администратора не установлен пароль`);
+      return res.json({ success: false, message: 'Пароль не установлен' });
+    }
 
-    if (passwordResult.rows[0].password && passwordResult.rows[0].password !== password) {
+    if (dbUser.password !== password) {
+      console.log(`❌ Неверный пароль для ${email}`);
       return res.json({ success: false, message: 'Неверный пароль' });
     }
+
+    console.log(`✅ Вход администратора успешен: ${dbUser.email}`);
 
     const user = {
       id: dbUser.id,
@@ -305,12 +363,14 @@ app.post('/api/auth/admin', async (req, res) => {
       registeredAt: dbUser.registered_at,
       isAdmin: dbUser.is_admin,
       isBanned: dbUser.is_banned,
+      avatar: dbUser.avatar,
+      uid: dbUser.uid,
       settings: dbUser.settings
     };
 
     res.json({ success: true, data: user });
   } catch (error) {
-    console.error('Admin login error:', error);
+    console.error('❌ Admin login error:', error);
     res.status(500).json({ success: false, message: 'Ошибка сервера' });
   }
 });
@@ -373,6 +433,8 @@ app.patch('/api/users/:id', async (req, res) => {
       registeredAt: dbUser.registered_at,
       isAdmin: dbUser.is_admin,
       isBanned: dbUser.is_banned,
+      avatar: dbUser.avatar,
+      uid: dbUser.uid,
       settings: dbUser.settings
     };
 
@@ -390,7 +452,7 @@ app.get('/api/users/:id', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT id, username, email, subscription, registered_at, is_admin, is_banned, settings 
+      `SELECT id, username, email, subscription, registered_at, is_admin, is_banned, avatar, uid, settings 
        FROM users WHERE id = $1`,
       [userId]
     );
@@ -409,6 +471,8 @@ app.get('/api/users/:id', async (req, res) => {
       registeredAt: dbUser.registered_at,
       isAdmin: dbUser.is_admin,
       isBanned: dbUser.is_banned,
+      avatar: dbUser.avatar,
+      uid: dbUser.uid,
       settings: dbUser.settings
     };
 
@@ -423,7 +487,7 @@ app.get('/api/users/:id', async (req, res) => {
 app.get('/api/users', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, username, email, subscription, registered_at, is_admin, is_banned, settings 
+      `SELECT id, username, email, subscription, registered_at, is_admin, is_banned, avatar, uid, settings 
        FROM users ORDER BY id DESC`
     );
 
@@ -435,6 +499,8 @@ app.get('/api/users', async (req, res) => {
       registeredAt: dbUser.registered_at,
       isAdmin: dbUser.is_admin,
       isBanned: dbUser.is_banned,
+      avatar: dbUser.avatar,
+      uid: dbUser.uid,
       settings: dbUser.settings
     }));
 

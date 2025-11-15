@@ -6,6 +6,7 @@ export interface User {
   subscription: 'free' | 'premium' | 'alpha'
   registeredAt: string
   avatar?: string
+  uid?: string
   settings: UserSettings
   isAdmin?: boolean
   isBanned?: boolean

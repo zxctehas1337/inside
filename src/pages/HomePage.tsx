@@ -337,7 +337,7 @@ export default function HomePage() {
                         <div className="player-meta">
                           <div>
                             <span className="label">UID</span>
-                            <strong>AZ-2024-001</strong>
+                            <strong>{currentUser?.uid || `AZ-${new Date(currentUser?.registeredAt || Date.now()).getFullYear()}-${String(currentUser?.id || 1).padStart(3, '0')}`}</strong>
                           </div>
                           <div>
                             <span className="label">Статус</span>
@@ -467,7 +467,7 @@ export default function HomePage() {
                         </div>
                         <div className="profile-field">
                           <label>UID:</label>
-                          <span className="uid-value">AZ-2024-001</span>
+                          <span className="uid-value">{currentUser?.uid || `AZ-${new Date(currentUser?.registeredAt || Date.now()).getFullYear()}-${String(currentUser?.id || 1).padStart(3, '0')}`}</span>
                         </div>
                         <div className="profile-field">
                           <label>Status:</label>
