@@ -32,6 +32,15 @@ export default function AdminPage() {
     // Загрузка данных
     loadNews()
     loadUsers()
+
+    // Автоматическое обновление данных каждые 30 секунд
+    const intervalId = setInterval(() => {
+      loadNews()
+      loadUsers()
+      console.log('🔄 Данные админ-панели автоматически обновлены')
+    }, 30000) // 30 секунд
+
+    return () => clearInterval(intervalId)
   }, [navigate])
 
   const loadNews = async () => {

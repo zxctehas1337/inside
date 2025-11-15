@@ -64,9 +64,36 @@ export default function DashboardPage() {
     }
 
     window.addEventListener('userDeleted', handleUserDeleted as EventListener)
+
+    // Автоматическое обновление данных каждые 30 секунд
+    const intervalId = setInterval(async () => {
+      const currentUserData = getCurrentUser()
+      if (currentUserData) {
+        try {
+          const { getUserInfo } = await import('../utils/api')
+          const response = await getUserInfo(currentUserData.id)
+          if (response.success && response.data) {
+            const updatedUser = {
+              ...currentUserData,
+              ...response.data,
+              registeredAt: response.data.registeredAt || currentUserData.registeredAt
+            }
+            setCurrentUser(updatedUser)
+            setUser(updatedUser)
+            if (updatedUser.avatar) {
+              setAvatarPreview(updatedUser.avatar)
+            }
+            console.log('🔄 Данные автоматически обновлены')
+          }
+        } catch (error) {
+          console.error('Auto-update failed:', error)
+        }
+      }
+    }, 30000) // 30 секунд
     
     return () => {
       window.removeEventListener('userDeleted', handleUserDeleted as EventListener)
+      clearInterval(intervalId)
     }
   }, [navigate])
 
