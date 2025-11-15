@@ -294,7 +294,7 @@ app.get('/api/auth/google/callback',
         <html>
         <head>
           <meta charset="utf-8">
-          <title>Код авторизации - Inside Launcher</title>
+          <title>Inside Launcher</title>
           <style>
             * {
               margin: 0;
@@ -303,171 +303,127 @@ app.get('/api/auth/google/callback',
             }
             body {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              background: #0a0a0f;
               display: flex;
               align-items: center;
               justify-content: center;
               min-height: 100vh;
               color: white;
-              padding: 20px;
+              position: relative;
+              overflow: hidden;
+            }
+            body::before {
+              content: '';
+              position: absolute;
+              inset: 0;
+              background: radial-gradient(circle at 50% 50%, rgba(138, 75, 255, 0.1) 0%, transparent 60%);
+              animation: pulse 4s ease-in-out infinite;
+            }
+            @keyframes pulse {
+              0%, 100% { opacity: 0.4; }
+              50% { opacity: 0.8; }
             }
             .container {
+              position: relative;
+              z-index: 1;
               text-align: center;
-              padding: 50px 40px;
-              background: rgba(255, 255, 255, 0.1);
-              border-radius: 24px;
-              backdrop-filter: blur(20px);
-              box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-              max-width: 500px;
+              max-width: 400px;
               width: 100%;
+              padding: 20px;
             }
-            .checkmark {
-              width: 80px;
-              height: 80px;
-              border-radius: 50%;
-              background: rgba(76, 175, 80, 0.3);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              margin: 0 auto 30px;
-              font-size: 48px;
-              animation: scaleIn 0.5s ease-out;
+            .logo {
+              margin-bottom: 32px;
+              animation: float 3s ease-in-out infinite;
             }
-            @keyframes scaleIn {
-              from { transform: scale(0); }
-              to { transform: scale(1); }
+            @keyframes float {
+              0%, 100% { transform: translateY(0px); }
+              50% { transform: translateY(-10px); }
             }
             h1 {
               font-size: 32px;
-              font-weight: 600;
-              margin-bottom: 15px;
-            }
-            .subtitle {
-              font-size: 16px;
-              opacity: 0.9;
-              margin-bottom: 40px;
-              line-height: 1.5;
-            }
-            .code-container {
-              background: rgba(255, 255, 255, 0.15);
-              border-radius: 16px;
-              padding: 30px;
-              margin-bottom: 30px;
-            }
-            .code-label {
-              font-size: 14px;
-              opacity: 0.8;
-              margin-bottom: 15px;
-              text-transform: uppercase;
-              letter-spacing: 1px;
+              font-weight: 700;
+              background: linear-gradient(135deg, #8A4BFF 0%, #FF6B9D 100%);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
+              margin-bottom: 48px;
+              letter-spacing: -1px;
             }
             .code {
-              font-size: 48px;
+              font-size: 56px;
               font-weight: 700;
-              letter-spacing: 8px;
+              letter-spacing: 12px;
               font-family: 'Courier New', monospace;
-              color: #fff;
-              text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+              background: linear-gradient(135deg, #8A4BFF 0%, #FF6B9D 100%);
+              -webkit-background-clip: text;
+              -webkit-text-fill-color: transparent;
+              background-clip: text;
               user-select: all;
               cursor: pointer;
+              margin-bottom: 32px;
               transition: transform 0.2s;
             }
             .code:hover {
               transform: scale(1.05);
             }
-            .copy-btn {
-              background: rgba(255, 255, 255, 0.2);
-              border: 2px solid rgba(255, 255, 255, 0.3);
-              color: white;
-              padding: 12px 30px;
-              border-radius: 12px;
-              font-size: 16px;
-              font-weight: 600;
-              cursor: pointer;
-              transition: all 0.3s;
-              margin-top: 20px;
-            }
-            .copy-btn:hover {
-              background: rgba(255, 255, 255, 0.3);
-              transform: translateY(-2px);
-            }
-            .copy-btn:active {
-              transform: translateY(0);
-            }
-            .instructions {
-              background: rgba(255, 255, 255, 0.1);
-              border-radius: 12px;
-              padding: 20px;
-              margin-top: 30px;
-              text-align: left;
-            }
-            .instructions h3 {
-              font-size: 16px;
-              margin-bottom: 15px;
-              text-align: center;
-            }
-            .instructions ol {
-              padding-left: 20px;
-              line-height: 1.8;
-            }
-            .instructions li {
-              margin-bottom: 8px;
-              opacity: 0.9;
+            .hint {
+              font-size: 14px;
+              color: rgba(255, 255, 255, 0.5);
+              margin-bottom: 24px;
             }
             .timer {
-              margin-top: 20px;
-              font-size: 14px;
-              opacity: 0.7;
+              font-size: 13px;
+              color: rgba(255, 255, 255, 0.4);
             }
             .copied {
               position: fixed;
-              top: 20px;
-              right: 20px;
-              background: rgba(76, 175, 80, 0.9);
-              padding: 15px 25px;
-              border-radius: 12px;
-              font-weight: 600;
-              animation: slideIn 0.3s ease-out;
+              top: 24px;
+              left: 50%;
+              transform: translateX(-50%);
+              background: rgba(138, 75, 255, 0.2);
+              border: 1px solid rgba(138, 75, 255, 0.4);
+              padding: 12px 24px;
+              border-radius: 8px;
+              font-size: 14px;
+              font-weight: 500;
+              animation: slideDown 0.3s ease-out;
               display: none;
             }
-            @keyframes slideIn {
+            @keyframes slideDown {
               from {
-                transform: translateX(400px);
                 opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
               }
               to {
-                transform: translateX(0);
                 opacity: 1;
+                transform: translateX(-50%) translateY(0);
               }
             }
           </style>
         </head>
         <body>
-          <div class="copied" id="copiedMsg">✓ Код скопирован!</div>
+          <div class="copied" id="copiedMsg">Код скопирован</div>
           <div class="container">
-            <div class="checkmark">✓</div>
-            <h1>Авторизация успешна!</h1>
-            <p class="subtitle">Скопируйте код ниже и вставьте его в лаунчер Inside</p>
-            
-            <div class="code-container">
-              <div class="code-label">Ваш код авторизации</div>
-              <div class="code" id="authCode" onclick="copyCode()">${code}</div>
-              <button class="copy-btn" onclick="copyCode()">📋 Скопировать код</button>
+            <div class="logo">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="url(#gradient1)"/>
+                <path d="M2 17L12 22L22 17V7L12 12L2 7V17Z" fill="url(#gradient2)"/>
+                <defs>
+                  <linearGradient id="gradient1" x1="2" y1="2" x2="22" y2="12">
+                    <stop offset="0%" stop-color="#8A4BFF"/>
+                    <stop offset="100%" stop-color="#FF6B9D"/>
+                  </linearGradient>
+                  <linearGradient id="gradient2" x1="2" y1="7" x2="22" y2="22">
+                    <stop offset="0%" stop-color="#6C37D7"/>
+                    <stop offset="100%" stop-color="#8A4BFF"/>
+                  </linearGradient>
+                </defs>
+              </svg>
             </div>
-
-            <div class="instructions">
-              <h3>📝 Инструкция</h3>
-              <ol>
-                <li>Скопируйте код выше</li>
-                <li>Вернитесь в лаунчер</li>
-                <li>Вставьте код в поле ввода</li>
-                <li>Нажмите "Войти"</li>
-              </ol>
-            </div>
-
-            <div class="timer">
-              ⏱️ Код действителен <span id="timeLeft">5:00</span>
-            </div>
+            <h1>Inside Client</h1>
+            <div class="code" id="authCode" onclick="copyCode()">${code}</div>
+            <div class="hint">Вставьте код в лаунчер</div>
+            <div class="timer">Действителен <span id="timeLeft">5:00</span></div>
           </div>
 
           <script>
@@ -482,33 +438,21 @@ app.get('/api/auth/google/callback',
               });
             }
 
-            // Таймер обратного отсчета
-            let timeLeft = 5 * 60; // 5 минут в секундах
+            let timeLeft = 5 * 60;
             const timerElement = document.getElementById('timeLeft');
             
             setInterval(() => {
               timeLeft--;
               if (timeLeft <= 0) {
                 timerElement.textContent = 'Истек';
-                timerElement.style.color = '#ff6b6b';
                 return;
               }
-              
               const minutes = Math.floor(timeLeft / 60);
               const seconds = timeLeft % 60;
               timerElement.textContent = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
-              
-              if (timeLeft <= 60) {
-                timerElement.style.color = '#ff6b6b';
-              }
             }, 1000);
 
-            // Автоматическое копирование при загрузке
-            window.onload = () => {
-              console.log('🔑 Страница с кодом авторизации загружена для лаунчера');
-              console.log('📋 Код:', '${code}');
-              copyCode();
-            };
+            window.onload = () => copyCode();
           </script>
         </body>
         </html>
