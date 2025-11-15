@@ -42,5 +42,6 @@ Web/node_modules
 Web/dist
 Web/.env.local
 Launcher/
+Launcher
 electron-launcher/
 111

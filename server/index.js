@@ -215,25 +215,34 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Тестовый endpoint для проверки кодов авторизации
+app.get('/api/auth/debug-codes', (req, res) => {
+  const codes = Array.from(authCodes.entries()).map(([code, data]) => ({
+    code,
+    email: data.user.email,
+    expiresAt: new Date(data.expiresAt).toISOString(),
+    timeLeft: Math.max(0, Math.floor((data.expiresAt - Date.now()) / 1000))
+  }));
+  
+  res.json({ 
+    success: true, 
+    activeCodes: codes.length,
+    codes: codes
+  });
+});
+
 // ============= GOOGLE OAUTH ENDPOINTS =============
 
 // Инициация Google OAuth
 app.get('/api/auth/google', (req, res, next) => {
-  // Сохраняем redirect URL из query параметра для использования в callback
-  if (req.query.redirect) {
-    req.session.redirectUrl = req.query.redirect;
-    console.log(`🔗 Сохранен redirect URL в сессию: ${req.query.redirect}`);
-  } else {
-    console.log(`🌐 Redirect URL не указан, будет использован веб-редирект`);
-  }
+  // Передаем redirect параметр через state для надежности
+  const redirectUrl = req.query.redirect || 'web';
+  console.log(`🔗 Redirect URL: ${redirectUrl}`);
   
-  // Сохраняем сессию перед редиректом на Google
-  req.session.save((err) => {
-    if (err) {
-      console.error('❌ Ошибка сохранения сессии:', err);
-    }
-    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
-  });
+  passport.authenticate('google', { 
+    scope: ['profile', 'email'],
+    state: redirectUrl
+  })(req, res, next);
 });
 
 // Google OAuth callback
@@ -241,7 +250,21 @@ app.get('/api/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/auth' }),
   (req, res) => {
     console.log(`✅ Google OAuth успешен для пользователя: ${req.user.email}`);
-    console.log(`📋 Сессия redirectUrl: ${req.session.redirectUrl || 'не установлен'}`);
+    console.log(`🔍 Все query параметры:`, req.query);
+    
+    // Получаем redirect URL из state параметра
+    let redirectUrl = req.query.state || 'web';
+    
+    // Резервная проверка: если state не передался, но в User-Agent есть признаки лаунчера
+    if (redirectUrl === 'web' && req.headers['user-agent']) {
+      const userAgent = req.headers['user-agent'].toLowerCase();
+      if (userAgent.includes('electron') || userAgent.includes('launcher')) {
+        redirectUrl = 'launcher';
+        console.log(`🔄 Обнаружен лаунчер по User-Agent, переключаем на launcher режим`);
+      }
+    }
+    
+    console.log(`📋 Финальный redirect URL: ${redirectUrl}`);
     
     // Успешная аутентификация
     const user = {
@@ -255,27 +278,23 @@ app.get('/api/auth/google/callback',
       settings: req.user.settings
     };
     
-    // Проверяем, откуда пришел запрос (лаунчер или веб)
-    const redirectUrl = req.session.redirectUrl;
-    
-    // Очищаем redirectUrl из сессии
-    delete req.session.redirectUrl;
-    
     if (redirectUrl === 'launcher') {
       // Для лаунчера - генерируем код авторизации
       const code = Math.random().toString(36).substring(2, 8).toUpperCase();
       const expiresAt = Date.now() + 5 * 60 * 1000; // 5 минут
       
       authCodes.set(code, { user, expiresAt });
-      console.log(`🔑 Сгенерирован код авторизации: ${code} (истекает через 5 минут)`);
+      console.log(`🔑 Сгенерирован код авторизации для лаунчера: ${code} (истекает через 5 минут)`);
+      console.log(`👤 Пользователь: ${user.email} (ID: ${user.id})`);
       
-      // Показываем страницу с кодом
+      // Показываем страницу с кодом для лаунчера
+      console.log(`📄 Отображаем страницу с кодом для лаунчера`);
       res.send(`
         <!DOCTYPE html>
         <html>
         <head>
           <meta charset="utf-8">
-          <title>Код авторизации</title>
+          <title>Код авторизации - Inside Launcher</title>
           <style>
             * {
               margin: 0;
@@ -428,7 +447,7 @@ app.get('/api/auth/google/callback',
           <div class="container">
             <div class="checkmark">✓</div>
             <h1>Авторизация успешна!</h1>
-            <p class="subtitle">Скопируйте код ниже и вставьте его в лаунчер</p>
+            <p class="subtitle">Скопируйте код ниже и вставьте его в лаунчер Inside</p>
             
             <div class="code-container">
               <div class="code-label">Ваш код авторизации</div>
@@ -486,6 +505,8 @@ app.get('/api/auth/google/callback',
 
             // Автоматическое копирование при загрузке
             window.onload = () => {
+              console.log('🔑 Страница с кодом авторизации загружена для лаунчера');
+              console.log('📋 Код:', '${code}');
               copyCode();
             };
           </script>
@@ -495,7 +516,7 @@ app.get('/api/auth/google/callback',
     } else {
       // Для веба - перенаправляем на дашборд с данными пользователя
       const userData = encodeURIComponent(JSON.stringify(user));
-      console.log(`🌐 Перенаправление на веб: /dashboard?auth=success`);
+      console.log(`🌐 Перенаправление на веб-дашборд для пользователя: ${user.email}`);
       res.redirect(`/dashboard?auth=success&user=${userData}`);
     }
   }
