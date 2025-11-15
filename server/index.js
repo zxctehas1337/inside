@@ -522,6 +522,52 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
+// Изменение подписки пользователя (только для администратора)
+app.patch('/api/users/:id/subscription', async (req, res) => {
+  const { id } = req.params;
+  const userId = parseInt(id, 10);
+  const { subscription } = req.body;
+
+  // Проверка валидности подписки
+  const validSubscriptions = ['free', 'premium', 'alpha'];
+  if (!validSubscriptions.includes(subscription)) {
+    return res.json({ success: false, message: 'Неверный тип подписки' });
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE users SET subscription = $1 
+       WHERE id = $2 
+       RETURNING id, username, email, subscription, registered_at, is_admin, is_banned, avatar, uid, settings`,
+      [subscription, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ success: false, message: 'Пользователь не найден' });
+    }
+
+    const dbUser = result.rows[0];
+    const user = {
+      id: dbUser.id,
+      username: dbUser.username,
+      email: dbUser.email,
+      subscription: dbUser.subscription,
+      registeredAt: dbUser.registered_at,
+      isAdmin: dbUser.is_admin,
+      isBanned: dbUser.is_banned,
+      avatar: dbUser.avatar,
+      uid: dbUser.uid,
+      settings: dbUser.settings
+    };
+
+    console.log(`✅ Подписка изменена для пользователя: ${dbUser.username} (ID: ${dbUser.id}) -> ${subscription}`);
+    res.json({ success: true, data: user });
+  } catch (error) {
+    console.error('❌ Change subscription error:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
+  }
+});
+
 // Удаление пользователя
 app.delete('/api/users/:id', async (req, res) => {
   const { id } = req.params;
@@ -743,6 +789,7 @@ app.listen(PORT, () => {
   console.log('   GET  /api/auth/logout - Выход из системы');
   console.log('   GET  /api/users - Список пользователей');
   console.log('   GET  /api/users/:id - Информация о пользователе');
+  console.log('   PATCH /api/users/:id/subscription - Изменение подписки');
   console.log('   GET  /api/news - Список новостей');
   console.log('   POST /api/news - Создание новости');
   console.log('   DELETE /api/news/:id - Удаление новости\n');

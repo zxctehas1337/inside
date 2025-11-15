@@ -65,6 +65,23 @@ export async function getAllUsers() {
 
 
 
+// Изменение подписки пользователя
+export async function changeUserSubscription(userId: number, subscription: 'free' | 'premium' | 'alpha') {
+  try {
+    const response = await fetch(`${API_URL}/api/users/${userId}/subscription`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ subscription }),
+    })
+    return await response.json()
+  } catch (error) {
+    console.error('Change subscription error:', error)
+    return { success: false, message: 'Ошибка подключения к серверу' }
+  }
+}
+
 // Удаление пользователя
 export async function deleteUser(userId: number) {
   try {

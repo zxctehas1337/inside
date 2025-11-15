@@ -149,6 +149,42 @@ export default function AdminPage() {
     setNotification({ message: 'Ошибка при изменении статуса пользователя', type: 'error' })
   }
 
+  const handleChangeSubscription = async (userId: number, newSubscription: 'free' | 'premium' | 'alpha') => {
+    const user = users.find(u => u.id === userId)
+    if (!user) return
+
+    try {
+      const result = await api.changeUserSubscription(userId, newSubscription)
+      
+      if (result.success && result.data) {
+        const updatedUsers = users.map(u => u.id === userId ? result.data : u)
+        setUsers(updatedUsers)
+        
+        // Если изменили подписку текущему пользователю, обновляем его данные
+        const currentUser = getCurrentUser()
+        if (currentUser && currentUser.id === userId) {
+          setCurrentUser(result.data)
+        }
+        
+        const subscriptionNames = {
+          free: 'Free',
+          premium: 'Premium',
+          alpha: 'Alpha'
+        }
+        
+        setNotification({ 
+          message: `Подписка изменена на ${subscriptionNames[newSubscription]}`, 
+          type: 'success' 
+        })
+        return
+      }
+    } catch (error) {
+      console.error('Change subscription error:', error)
+    }
+    
+    setNotification({ message: 'Ошибка при изменении подписки', type: 'error' })
+  }
+
   const handleDeleteUser = async (userId: number) => {
     const user = users.find(u => u.id === userId)
     if (!user) return
@@ -626,10 +662,15 @@ export default function AdminPage() {
                       </td>
                       <td>{user.email}</td>
                       <td>
-                        <span className={`subscription-badge ${user.subscription}`}>
-                          {user.subscription === 'premium' ? 'Premium' : 
-                           user.subscription === 'alpha' ? 'Alpha' : 'Free'}
-                        </span>
+                        <select 
+                          className={`subscription-select ${user.subscription}`}
+                          value={user.subscription}
+                          onChange={(e) => handleChangeSubscription(user.id, e.target.value as 'free' | 'premium' | 'alpha')}
+                        >
+                          <option value="free">Free</option>
+                          <option value="premium">Premium</option>
+                          <option value="alpha">Alpha</option>
+                        </select>
                       </td>
                       <td>{new Date(user.registeredAt).toLocaleDateString('ru-RU')}</td>
                       <td>
