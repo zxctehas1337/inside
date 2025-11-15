@@ -67,7 +67,7 @@ passport.use(new GoogleStrategy({
   async (accessToken, refreshToken, profile, done) => {
     try {
       // Получаем аватарку из Google профиля
-      const avatar = profile.photos && profile.photos.length > 0 ? profile.photos[0].value : null;
+      const googleAvatar = profile.photos && profile.photos.length > 0 ? profile.photos[0].value : null;
       
       // Проверяем, существует ли пользователь с таким Google ID
       let result = await pool.query(
@@ -76,10 +76,12 @@ passport.use(new GoogleStrategy({
       );
 
       if (result.rows.length > 0) {
-        // Обновляем аватарку при каждом входе
+        // НЕ обновляем аватарку, если у пользователя уже есть custom_avatar
+        // Только обновляем google_avatar для возможности восстановления
+        const user = result.rows[0];
         const updateResult = await pool.query(
-          'UPDATE users SET avatar = $1 WHERE google_id = $2 RETURNING *',
-          [avatar, profile.id]
+          'UPDATE users SET google_avatar = $1 WHERE google_id = $2 RETURNING *',
+          [googleAvatar, profile.id]
         );
         return done(null, updateResult.rows[0]);
       }
@@ -91,10 +93,13 @@ passport.use(new GoogleStrategy({
       );
 
       if (result.rows.length > 0) {
-        // Обновляем существующего пользователя, добавляя Google ID и аватарку
+        // Обновляем существующего пользователя, добавляя Google ID
+        // Устанавливаем avatar только если у пользователя нет custom_avatar
+        const user = result.rows[0];
+        const avatarToSet = user.custom_avatar ? user.custom_avatar : googleAvatar;
         const updateResult = await pool.query(
-          'UPDATE users SET google_id = $1, email_verified = true, avatar = $2 WHERE id = $3 RETURNING *',
-          [profile.id, avatar, result.rows[0].id]
+          'UPDATE users SET google_id = $1, email_verified = true, google_avatar = $2, avatar = $3 WHERE id = $4 RETURNING *',
+          [profile.id, googleAvatar, avatarToSet, result.rows[0].id]
         );
         return done(null, updateResult.rows[0]);
       }
@@ -104,10 +109,10 @@ passport.use(new GoogleStrategy({
       
       // Сначала создаем пользователя без UID
       const newUserResult = await pool.query(
-        `INSERT INTO users (username, email, password, google_id, email_verified, subscription, avatar) 
-         VALUES ($1, $2, $3, $4, true, 'free', $5) 
+        `INSERT INTO users (username, email, password, google_id, email_verified, subscription, avatar, google_avatar) 
+         VALUES ($1, $2, $3, $4, true, 'free', $5, $6) 
          RETURNING *`,
-        [username, profile.emails[0].value, '', profile.id, avatar]
+        [username, profile.emails[0].value, '', profile.id, googleAvatar, googleAvatar]
       );
       
       // Генерируем UID на основе года регистрации и ID
@@ -146,6 +151,8 @@ async function initDatabase() {
         is_banned BOOLEAN DEFAULT false,
         email_verified BOOLEAN DEFAULT false,
         avatar TEXT,
+        google_avatar TEXT,
+        custom_avatar TEXT,
         uid VARCHAR(50) UNIQUE,
         settings JSONB DEFAULT '{"notifications": true, "autoUpdate": true, "theme": "dark", "language": "ru"}'::jsonb
       )
@@ -157,6 +164,8 @@ async function initDatabase() {
       ADD COLUMN IF NOT EXISTS google_id VARCHAR(255) UNIQUE,
       ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false,
       ADD COLUMN IF NOT EXISTS avatar TEXT,
+      ADD COLUMN IF NOT EXISTS google_avatar TEXT,
+      ADD COLUMN IF NOT EXISTS custom_avatar TEXT,
       ADD COLUMN IF NOT EXISTS uid VARCHAR(50) UNIQUE
     `);
     
@@ -415,7 +424,7 @@ app.patch('/api/users/:id', async (req, res) => {
     const result = await pool.query(
       `UPDATE users SET ${fields.join(', ')} 
        WHERE id = $${paramCount} 
-       RETURNING id, username, email, password, subscription, registered_at, is_admin, is_banned, settings`,
+       RETURNING id, username, email, password, subscription, registered_at, is_admin, is_banned, avatar, google_avatar, custom_avatar, uid, settings`,
       values
     );
 
@@ -434,6 +443,8 @@ app.patch('/api/users/:id', async (req, res) => {
       isAdmin: dbUser.is_admin,
       isBanned: dbUser.is_banned,
       avatar: dbUser.avatar,
+      googleAvatar: dbUser.google_avatar,
+      customAvatar: dbUser.custom_avatar,
       uid: dbUser.uid,
       settings: dbUser.settings
     };
@@ -552,6 +563,91 @@ app.delete('/api/users/:id', async (req, res) => {
     console.error('❌ Delete user error:', error.message);
     console.error('❌ Full error:', error);
     res.status(500).json({ success: false, message: 'Ошибка сервера: ' + error.message });
+  }
+});
+
+// Загрузка пользовательской аватарки
+app.post('/api/users/:id/avatar', async (req, res) => {
+  const { id } = req.params;
+  const userId = parseInt(id, 10);
+  const { avatar } = req.body; // base64 строка
+
+  try {
+    // Обновляем custom_avatar и avatar
+    const result = await pool.query(
+      `UPDATE users SET custom_avatar = $1, avatar = $1 
+       WHERE id = $2 
+       RETURNING id, username, email, subscription, registered_at, is_admin, is_banned, avatar, google_avatar, custom_avatar, uid, settings`,
+      [avatar, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ success: false, message: 'Пользователь не найден' });
+    }
+
+    const dbUser = result.rows[0];
+    const user = {
+      id: dbUser.id,
+      username: dbUser.username,
+      email: dbUser.email,
+      subscription: dbUser.subscription,
+      registeredAt: dbUser.registered_at,
+      isAdmin: dbUser.is_admin,
+      isBanned: dbUser.is_banned,
+      avatar: dbUser.avatar,
+      googleAvatar: dbUser.google_avatar,
+      customAvatar: dbUser.custom_avatar,
+      uid: dbUser.uid,
+      settings: dbUser.settings
+    };
+
+    console.log(`✅ Аватарка обновлена для пользователя: ${dbUser.username} (ID: ${dbUser.id})`);
+    res.json({ success: true, data: user });
+  } catch (error) {
+    console.error('❌ Upload avatar error:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
+  }
+});
+
+// Удаление пользовательской аватарки (восстановление Google аватарки)
+app.delete('/api/users/:id/avatar', async (req, res) => {
+  const { id } = req.params;
+  const userId = parseInt(id, 10);
+
+  try {
+    // Удаляем custom_avatar и восстанавливаем google_avatar
+    const result = await pool.query(
+      `UPDATE users SET custom_avatar = NULL, avatar = COALESCE(google_avatar, NULL) 
+       WHERE id = $1 
+       RETURNING id, username, email, subscription, registered_at, is_admin, is_banned, avatar, google_avatar, custom_avatar, uid, settings`,
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ success: false, message: 'Пользователь не найден' });
+    }
+
+    const dbUser = result.rows[0];
+    const user = {
+      id: dbUser.id,
+      username: dbUser.username,
+      email: dbUser.email,
+      subscription: dbUser.subscription,
+      registeredAt: dbUser.registered_at,
+      isAdmin: dbUser.is_admin,
+      isBanned: dbUser.is_banned,
+      avatar: dbUser.avatar,
+      googleAvatar: dbUser.google_avatar,
+      customAvatar: dbUser.custom_avatar,
+      uid: dbUser.uid,
+      settings: dbUser.settings
+    };
+
+    console.log(`✅ Пользовательская аватарка удалена для: ${dbUser.username} (ID: ${dbUser.id})`);
+    res.json({ success: true, data: user });
+  } catch (error) {
+    console.error('❌ Delete avatar error:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
   }
 });
 

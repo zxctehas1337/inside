@@ -755,7 +755,7 @@ export default function HomePage() {
                   <svg className="check" width="20" height="20" viewBox="0 0 20 20" fill="none">
                     <path d="M16 6L8 14L4 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                   </svg>
-                  Лучшие функции и новые
+                  Лучшие функции и новые версии
                 </li>
               </ul>
               {currentUser ? (
