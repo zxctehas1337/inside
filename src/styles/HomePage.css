@@ -490,6 +490,68 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
+    align-items: center;
+    justify-content: center;
+    min-height: 100%;
+}
+
+/* Centered Home Layout */
+.launcher-home .home-center {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 48px;
+    text-align: center;
+}
+
+.launcher-home .home-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+.launcher-home .home-title {
+    font-size: 48px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #8A4BFF 0%, #FF6B9D 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+    letter-spacing: -1px;
+}
+
+.launcher-home .home-launch-btn {
+    padding: 18px 48px;
+    background: linear-gradient(135deg, #8A4BFF 0%, #FF6B9D 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.3s;
+    box-shadow: 0 8px 32px rgba(138, 75, 255, 0.3);
+}
+
+.launcher-home .home-launch-btn:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 48px rgba(138, 75, 255, 0.5);
+}
+
+.launcher-home .home-launch-btn:active {
+    transform: translateY(-2px);
 }
 
 .home-hero {
