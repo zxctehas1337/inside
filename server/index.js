@@ -165,17 +165,17 @@ async function createDefaultAdmin() {
     const adminPassword = process.env.ADMIN_PASSWORD || 'SHAKEDOWN-PROJECT-EASY';
     const adminUsername = process.env.ADMIN_USERNAME || 'admin';
 
-    // Проверяем, существует ли уже администратор
+    // Проверяем, существует ли уже администратор по email или username
     const checkResult = await pool.query(
-      'SELECT * FROM users WHERE email = $1',
-      [adminEmail]
+      'SELECT * FROM users WHERE email = $1 OR username = $2',
+      [adminEmail, adminUsername]
     );
 
     if (checkResult.rows.length > 0) {
       // Обновляем существующего пользователя, делая его администратором
       await pool.query(
-        'UPDATE users SET is_admin = true, password = $1, email_verified = true WHERE email = $2',
-        [adminPassword, adminEmail]
+        'UPDATE users SET is_admin = true, password = $1, email_verified = true WHERE email = $2 OR username = $3',
+        [adminPassword, adminEmail, adminUsername]
       );
       console.log('✅ Администратор обновлен:', adminEmail);
     } else {
