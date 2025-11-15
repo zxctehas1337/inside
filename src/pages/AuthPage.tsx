@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import AnimatedBackground from '../components/AnimatedBackground'
 import Notification from '../components/Notification'
 import { Database, setCurrentUser } from '../utils/database'
+import { verifyEmailCode, resendVerificationCode } from '../utils/api'
 import { NotificationType } from '../types'
 import '../styles/AuthPage.css'
 
@@ -10,6 +11,10 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login')
   const [showPassword, setShowPassword] = useState(false)
   const [notification, setNotification] = useState<{ message: string; type: NotificationType } | null>(null)
+  const [showVerificationModal, setShowVerificationModal] = useState(false)
+  const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', ''])
+  const [pendingUserId, setPendingUserId] = useState<number | null>(null)
+  const [isVerifying, setIsVerifying] = useState(false)
   const navigate = useNavigate()
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -73,9 +78,82 @@ export default function AuthPage() {
     const result = await db.register(username, email, password)
 
     if (result.success && result.user) {
-      setCurrentUser(result.user)
+      if (result.requiresVerification) {
+        // Показываем модальное окно для ввода кода
+        setPendingUserId(result.user.id)
+        setShowVerificationModal(true)
+        setNotification({ message: result.message, type: 'success' })
+      } else {
+        setCurrentUser(result.user)
+        setNotification({ message: result.message, type: 'success' })
+        setTimeout(() => navigate('/dashboard'), 1500)
+      }
+    } else {
+      setNotification({ message: result.message, type: 'error' })
+    }
+  }
+
+  const handleVerificationCodeChange = (index: number, value: string) => {
+    if (value.length > 1) return
+    if (value && !/^\d$/.test(value)) return
+
+    const newCode = [...verificationCode]
+    newCode[index] = value
+    setVerificationCode(newCode)
+
+    // Автоматический переход к следующему полю
+    if (value && index < 5) {
+      const nextInput = document.getElementById(`code-${index + 1}`)
+      nextInput?.focus()
+    }
+  }
+
+  const handleVerificationCodeKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !verificationCode[index] && index > 0) {
+      const prevInput = document.getElementById(`code-${index - 1}`)
+      prevInput?.focus()
+    }
+  }
+
+  const handleVerifyCode = async () => {
+    const code = verificationCode.join('')
+    if (code.length !== 6) {
+      setNotification({ message: 'Введите полный код', type: 'error' })
+      return
+    }
+
+    if (!pendingUserId) {
+      setNotification({ message: 'Ошибка: ID пользователя не найден', type: 'error' })
+      return
+    }
+
+    setIsVerifying(true)
+    const result = await verifyEmailCode(pendingUserId, code)
+    setIsVerifying(false)
+
+    if (result.success) {
       setNotification({ message: result.message, type: 'success' })
-      setTimeout(() => navigate('/dashboard'), 1500)
+      setShowVerificationModal(false)
+      
+      // Получаем обновленные данные пользователя
+      const db = new Database()
+      const userResult = await db.getUserById(pendingUserId)
+      if (userResult.success && userResult.user) {
+        setCurrentUser(userResult.user)
+        setTimeout(() => navigate('/dashboard'), 1500)
+      }
+    } else {
+      setNotification({ message: result.message, type: 'error' })
+    }
+  }
+
+  const handleResendCode = async () => {
+    if (!pendingUserId) return
+
+    const result = await resendVerificationCode(pendingUserId)
+    if (result.success) {
+      setNotification({ message: result.message, type: 'success' })
+      setVerificationCode(['', '', '', '', '', ''])
     } else {
       setNotification({ message: result.message, type: 'error' })
     }
@@ -263,6 +341,59 @@ export default function AuthPage() {
           </a>
         </div>
       </div>
+
+      {/* Модальное окно для ввода кода */}
+      {showVerificationModal && (
+        <div className="modal-overlay" onClick={() => setShowVerificationModal(false)}>
+          <div className="verification-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Подтверждение Email</h2>
+              <button className="close-btn" onClick={() => setShowVerificationModal(false)}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+            
+            <div className="modal-content">
+              <p className="verification-text">
+                Мы отправили 6-значный код на вашу почту. Введите его ниже:
+              </p>
+              
+              <div className="code-inputs">
+                {verificationCode.map((digit, index) => (
+                  <input
+                    key={index}
+                    id={`code-${index}`}
+                    type="text"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handleVerificationCodeChange(index, e.target.value)}
+                    onKeyDown={(e) => handleVerificationCodeKeyDown(index, e)}
+                    className="code-input"
+                  />
+                ))}
+              </div>
+
+              <button 
+                className="btn btn-primary btn-full"
+                onClick={handleVerifyCode}
+                disabled={isVerifying || verificationCode.join('').length !== 6}
+              >
+                {isVerifying ? 'Проверка...' : 'Подтвердить'}
+              </button>
+
+              <button 
+                className="btn btn-secondary btn-full"
+                onClick={handleResendCode}
+                disabled={isVerifying}
+              >
+                Отправить код повторно
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

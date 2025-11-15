@@ -35,15 +35,18 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Функция отправки письма подтверждения через Google SMTP
-async function sendVerificationEmail(email, username, verificationToken) {
+// Функция генерации 6-значного кода
+function generateVerificationCode() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Функция отправки кода подтверждения через Google SMTP
+async function sendVerificationEmail(email, username, verificationCode) {
   try {
-    const verificationUrl = `https://insidenew.onrender.com/api/auth/verify-email?token=${verificationToken}`;
-    
     const mailOptions = {
       from: process.env.SMTP_FROM,
       to: email,
-      subject: 'Подтверждение регистрации - Vansono',
+      subject: 'Код подтверждения регистрации - Inside',
       html: `
         <!DOCTYPE html>
         <html>
@@ -54,29 +57,30 @@ async function sendVerificationEmail(email, username, verificationToken) {
             .container { max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 12px; overflow: hidden; }
             .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; }
             .header h1 { color: #ffffff; margin: 0; font-size: 28px; }
-            .content { padding: 40px 30px; color: #ffffff; }
+            .content { padding: 40px 30px; color: #ffffff; text-align: center; }
             .content p { font-size: 16px; line-height: 1.6; color: #cccccc; }
-            .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 8px; margin: 20px 0; font-weight: bold; }
+            .code-box { background: rgba(255, 255, 255, 0.1); border: 2px solid #667eea; border-radius: 12px; padding: 30px; margin: 30px 0; }
+            .code { font-size: 48px; font-weight: bold; letter-spacing: 8px; color: #00d4ff; font-family: 'Courier New', monospace; }
             .footer { padding: 20px; text-align: center; color: #888888; font-size: 12px; border-top: 1px solid #2a2a3e; }
+            .warning { color: #ff9800; font-size: 14px; margin-top: 20px; }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
-              <h1>✨ Добро пожаловать, ${username}!</h1>
+              <h1>✨ Добро пожаловать, ${username}! ✨</h1>
             </div>
             <div class="content">
-              <p>Спасибо за регистрацию на платформе Vansono!</p>
-              <p>Для завершения регистрации и активации вашего аккаунта, пожалуйста, подтвердите ваш email адрес, нажав на кнопку ниже:</p>
-              <div style="text-align: center;">
-                <a href="${verificationUrl}" class="button">Подтвердить Email</a>
+              <p>Спасибо за регистрацию на платформе Inside!</p>
+              <p>Для завершения регистрации введите этот код подтверждения:</p>
+              <div class="code-box">
+                <div class="code">${verificationCode}</div>
               </div>
-              <p>Или скопируйте и вставьте эту ссылку в браузер:</p>
-              <p style="word-break: break-all; color: #00d4ff;">${verificationUrl}</p>
+              <p class="warning">Код действителен в течение 10 минут</p>
               <p>Если вы не регистрировались на нашем сайте, просто проигнорируйте это письмо.</p>
             </div>
             <div class="footer">
-              <p>© 2024 Vansono. Все права защищены.</p>
+              <p>© 2024 Inside. Все права защищены.</p>
             </div>
           </div>
         </body>
@@ -85,8 +89,8 @@ async function sendVerificationEmail(email, username, verificationToken) {
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`✅ Письмо подтверждения отправлено на ${email}`);
-    console.log(`📧 Ссылка для подтверждения: ${verificationUrl}`);
+    console.log(`Код подтверждения отправлен на ${email}`);
+    console.log(`Код: ${verificationCode}`);
     
     return true;
   } catch (error) {
@@ -109,7 +113,8 @@ async function initDatabase() {
         is_admin BOOLEAN DEFAULT false,
         is_banned BOOLEAN DEFAULT false,
         email_verified BOOLEAN DEFAULT false,
-        verification_token TEXT,
+        verification_code VARCHAR(6),
+        verification_code_expires TIMESTAMP,
         settings JSONB DEFAULT '{"notifications": true, "autoUpdate": true, "theme": "dark", "language": "ru"}'::jsonb
       )
     `);
@@ -118,7 +123,8 @@ async function initDatabase() {
     await pool.query(`
       ALTER TABLE users 
       ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS verification_token TEXT
+      ADD COLUMN IF NOT EXISTS verification_code VARCHAR(6),
+      ADD COLUMN IF NOT EXISTS verification_code_expires TIMESTAMP
     `);
     
     console.log('✅ База данных инициализирована');
@@ -155,15 +161,16 @@ app.post('/api/auth/register', async (req, res) => {
       }
     }
 
-    // Генерация токена подтверждения
-    const verificationToken = crypto.randomBytes(32).toString('hex');
+    // Генерация 6-значного кода
+    const verificationCode = generateVerificationCode();
+    const codeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 минут
 
     // Создание пользователя
     const result = await pool.query(
-      `INSERT INTO users (username, email, password, verification_token, email_verified) 
-       VALUES ($1, $2, $3, $4, false) 
+      `INSERT INTO users (username, email, password, verification_code, verification_code_expires, email_verified) 
+       VALUES ($1, $2, $3, $4, $5, false) 
        RETURNING id, username, email, subscription, registered_at, is_admin, is_banned, email_verified, settings`,
-      [username, email, Buffer.from(password).toString('base64'), verificationToken]
+      [username, email, Buffer.from(password).toString('base64'), verificationCode, codeExpires]
     );
 
     const user = {
@@ -179,20 +186,20 @@ app.post('/api/auth/register', async (req, res) => {
       settings: result.rows[0].settings
     };
 
-    // Отправка письма подтверждения
-    const emailSent = await sendVerificationEmail(email, username, verificationToken);
+    // Отправка кода подтверждения
+    const emailSent = await sendVerificationEmail(email, username, verificationCode);
     
     if (emailSent) {
       res.json({ 
         success: true, 
-        message: 'Регистрация успешна! Проверьте email для подтверждения.', 
+        message: 'Код подтверждения отправлен на email', 
+        requiresVerification: true,
         data: user 
       });
     } else {
       res.json({ 
-        success: true, 
-        message: 'Регистрация успешна, но письмо не отправлено. Обратитесь к администратору.', 
-        data: user 
+        success: false, 
+        message: 'Ошибка отправки кода. Попробуйте позже.'
       });
     }
   } catch (error) {
@@ -201,111 +208,94 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-// Подтверждение email
-app.get('/api/auth/verify-email', async (req, res) => {
-  const { token } = req.query;
+// Подтверждение email по коду
+app.post('/api/auth/verify-code', async (req, res) => {
+  const { userId, code } = req.body;
 
-  if (!token) {
-    return res.send(`
-      <html>
-        <head>
-          <title>Ошибка подтверждения</title>
-          <style>
-            body { font-family: Arial, sans-serif; background: #0a0a0a; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-            .container { text-align: center; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 40px; border-radius: 12px; border: 1px solid #2a2a3e; }
-            h1 { color: #ff4444; }
-            a { color: #00d4ff; text-decoration: none; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1>Ошибка</h1>
-            <p>Токен подтверждения не найден</p>
-            <a href="https://insidenew.onrender.com/auth">Вернуться к авторизации</a>
-          </div>
-        </body>
-      </html>
-    `);
+  if (!userId || !code) {
+    return res.json({ succe: 'Не указан ID пользователя или код' });
   }
 
   try {
     const result = await pool.query(
-      'SELECT * FROM users WHERE verification_token = $1',
-      [token]
+      'SELECT * FROM users WHERE id = $1',
+      [userId]
     );
 
     if (result.rows.length === 0) {
-      return res.send(`
-        <html>
-          <head>
-            <title>Ошибка подтверждения</title>
-            <style>
-              body { font-family: Arial, sans-serif; background: #0a0a0a; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-              .container { text-align: center; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 40px; border-radius: 12px; border: 1px solid #2a2a3e; }
-              h1 { color: #ff4444; }
-              a { color: #00d4ff; text-decoration: none; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <h1>❌ Неверный токен</h1>
-              <p>Токен подтверждения недействителен или уже использован</p>
-              <a href="https://insidenew.onrender.com/auth">Вернуться к авторизации</a>
-            </div>
-          </body>
-        </html>
-      `);
+      return res.json({ success: false, message: 'Пользователь не найден' });
+    }
+
+    const user = result.rows[0];
+
+    // Проверка срока действия кода
+    if (new Date() > new Date(user.verification_code_expires)) {
+      return res.json({ success: false, message: 'Код истек. Запросите новый код.' });
+    }
+
+    // Проверка кода
+    if (user.verification_code !== code) {
+      return res.json({ success: false, message: 'Неверный код подтверждения' });
     }
 
     // Обновляем статус подтверждения
     await pool.query(
-      'UPDATE users SET email_verified = true, verification_token = NULL WHERE verification_token = $1',
-      [token]
+      'UPDATE users SET email_verified = true, verification_code = NULL, verification_code_expires = NULL WHERE id = $1',
+      [userId]
     );
 
-    res.send(`
-      <html>
-        <head>
-          <title>Email подтвержден</title>
-          <style>
-            body { font-family: Arial, sans-serif; background: #0a0a0a; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-            .container { text-align: center; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 40px; border-radius: 12px; border: 1px solid #2a2a3e; }
-            h1 { color: #00d4ff; }
-            p { color: #cccccc; margin: 20px 0; }
-            a { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; margin-top: 20px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1>✅ Email подтвержден!</h1>
-            <p>Ваш email успешно подтвержден. Теперь вы можете войти в систему.</p>
-            <a href="https://insidenew.onrender.com/auth">Перейти к авторизации</a>
-          </div>
-        </body>
-      </html>
-    `);
+    res.json({ success: true, message: 'Email успешно подтвержден!' });
   } catch (error) {
     console.error('Verification error:', error);
-    res.send(`
-      <html>
-        <head>
-          <title>Ошибка сервера</title>
-          <style>
-            body { font-family: Arial, sans-serif; background: #0a0a0a; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-            .container { text-align: center; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 40px; border-radius: 12px; border: 1px solid #2a2a3e; }
-            h1 { color: #ff4444; }
-            a { color: #00d4ff; text-decoration: none; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1>❌ Ошибка сервера</h1>
-            <p>Произошла ошибка при подтверждении email</p>
-            <a href="https://insidenew.onrender.com/auth">Вернуться к авторизации</a>
-          </div>
-        </body>
-      </html>
-    `);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
+  }
+});
+
+// Повторная отправка кода
+app.post('/api/auth/resend-code', async (req, res) => {
+  const { userId } = req.body;
+
+  if (!userId) {
+    return res.json({ success: false, message: 'Не указан ID пользователя' });
+  }
+
+  try {
+    const result = await pool.query(
+      'SELECT * FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ success: false, message: 'Пользователь не найден' });
+    }
+
+    const user = result.rows[0];
+
+    if (user.email_verified) {
+      return res.json({ success: false, message: 'Email уже подтвержден' });
+    }
+
+    // Генерация нового кода
+    const verificationCode = generateVerificationCode();
+    const codeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 минут
+
+    // Обновление кода в БД
+    await pool.query(
+      'UPDATE users SET verification_code = $1, verification_code_expires = $2 WHERE id = $3',
+      [verificationCode, codeExpires, userId]
+    );
+
+    // Отправка нового кода
+    const emailSent = await sendVerificationEmail(user.email, user.username, verificationCode);
+    
+    if (emailSent) {
+      res.json({ success: true, message: 'Новый код отправлен на email' });
+    } else {
+      res.json({ success: false, message: 'Ошибка отправки кода' });
+    }
+  } catch (error) {
+    console.error('Resend code error:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
   }
 });
 
@@ -484,9 +474,10 @@ app.listen(PORT, () => {
   console.log(`📧 Google SMTP: ${process.env.SMTP_USER || 'Не настроен'}`);
   console.log(`🗄️  База данных: Подключена\n`);
   console.log('📝 Доступные эндпоинты:');
-  console.log('   POST /api/auth/register - Регистрация');
+  console.log('   POST /api/auth/register - Регистрация с отправкой кода');
   console.log('   POST /api/auth/login - Вход');
-  console.log('   GET  /api/auth/verify-email?token=xxx - Подтверждение email');
+  console.log('   POST /api/auth/verify-code - Подтверждение кода');
+  console.log('   POST /api/auth/resend-code - Повторная отправка кода');
   console.log('   GET  /api/users - Список пользователей');
   console.log('   GET  /api/users/:id - Информация о пользователе\n');
   console.log('🧪 Тестирование:');

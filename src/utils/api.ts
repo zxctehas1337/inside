@@ -89,3 +89,37 @@ export async function getAllUsers() {
     return { success: false, message: 'Ошибка подключения к серверу' }
   }
 }
+
+// Подтверждение email по коду
+export async function verifyEmailCode(userId: number, code: string) {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/verify-code`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId, code }),
+    })
+    return await response.json()
+  } catch (error) {
+    console.error('Verify code error:', error)
+    return { success: false, message: 'Ошибка подключения к серверу' }
+  }
+}
+
+// Повторная отправка кода
+export async function resendVerificationCode(userId: number) {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/resend-code`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId }),
+    })
+    return await response.json()
+  } catch (error) {
+    console.error('Resend code error:', error)
+    return { success: false, message: 'Ошибка подключения к серверу' }
+  }
+}

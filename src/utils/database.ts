@@ -29,7 +29,12 @@ export class Database {
     if (this.useApi) {
       const result = await api.registerUser(username, email, password)
       if (result.success && result.data) {
-        return { success: true, message: 'Регистрация успешна!', user: result.data }
+        return { 
+          success: true, 
+          message: result.message || 'Регистрация успешна!', 
+          user: result.data,
+          requiresVerification: (result as any).requiresVerification || false
+        }
       }
       // Если API не сработал, fallback на localStorage
       this.useApi = false
@@ -62,7 +67,7 @@ export class Database {
     this.users.push(user)
     this.save()
 
-    return { success: true, message: 'Регистрация успешна!', user }
+    return { success: true, message: 'Регистрация успешна!', user, requiresVerification: false }
   }
 
   async login(usernameOrEmail: string, password: string) {
@@ -130,6 +135,25 @@ export class Database {
       this.users[userIndex] = { ...this.users[userIndex], ...updates }
       this.save()
       return { success: true, user: this.users[userIndex] }
+    }
+    return { success: false, message: 'Пользователь не найден' }
+  }
+
+  async getUserById(userId: number) {
+    // Пробуем использовать API
+    if (this.useApi) {
+      const result = await api.getUserInfo(userId)
+      if (result.success && result.data) {
+        return { success: true, user: result.data }
+      }
+      // Если API не сработал, fallback на localStorage
+      this.useApi = false
+    }
+
+    // Fallback на localStorage
+    const user = this.users.find(u => u.id === userId)
+    if (user) {
+      return { success: true, user }
     }
     return { success: false, message: 'Пользователь не найден' }
   }
