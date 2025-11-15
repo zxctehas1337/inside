@@ -8,7 +8,7 @@ export const DOWNLOAD_LINKS = {
 }
 
 // Версия приложения
-export const APP_VERSION = 'v3.0.0'
+export const APP_VERSION = 'v3.1.9'
 
 // Информация о приложении
 export const APP_INFO = {

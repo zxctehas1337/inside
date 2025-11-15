@@ -127,7 +127,7 @@ export default function DashboardPage() {
             <img src="/icon.ico" alt="Inside Client" width="40" height="40" style={{ borderRadius: '8px' }} />
             <div>
               <div className="brand">INSIDE</div>
-              <div className="version">v3.0.0</div>
+              <div className="version">v3.1.9</div>
             </div>
           </div>
 

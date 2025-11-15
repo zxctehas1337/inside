@@ -177,7 +177,7 @@ export default function AuthPage() {
             <img src="/icon.ico" alt="Inside" width="48" height="48" style={{ borderRadius: '12px' }} />
             <div className="logo-text">
               <span className="brand">INSIDE</span>
-              <span className="version">v3.0.0</span>
+              <span className="version">v3.1.9</span>
             </div>
           </div>
 

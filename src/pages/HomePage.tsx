@@ -56,7 +56,7 @@ export default function HomePage() {
         <nav className="nav">
           <div className="nav-brand">
             <img src="/icon.ico" alt="Inside" width="32" height="32" style={{ borderRadius: '8px' }} />
-            <span className="version">v3.0.0</span>
+            <span className="version">v3.1.9</span>
           </div>
           <div className="nav-links">
             <a href="#features">Возможности</a>
@@ -158,7 +158,7 @@ export default function HomePage() {
                     </defs>
                   </svg>
                   <div className="app-logo">INSIDE</div>
-                  <div className="app-version">v3.0.0</div>
+                  <div className="app-version">v3.1.9</div>
                 </div>
                 <div className="titlebar-right">
                   <div 
@@ -611,7 +611,7 @@ export default function HomePage() {
                   <svg className="check" width="20" height="20" viewBox="0 0 20 20" fill="none">
                     <path d="M16 6L8 14L4 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                   </svg>
-                  Лучшие обходы
+                  Лучшие функции и новые
                 </li>
               </ul>
               {currentUser ? (
@@ -634,7 +634,7 @@ export default function HomePage() {
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path d="M12 4V20M12 20L18 14M12 20L6 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
-              Скачать Inside Client v3.0.0
+              Скачать Inside Client v3.1.9
             </a>
             <div className="download-info">
               <span>Windows 10/11 • Minecraft 1.20.1</span>
@@ -683,9 +683,8 @@ export default function HomePage() {
             <div className="footer-brand">
               <div className="logo-section">
                 <div className="brand-name">INSIDE</div>
-                <div className="version">v3.0.0</div>
+                <div className="version">v3.1.9</div>
               </div>
-              <p>Лучший клиент для Minecraft с передовыми технологиями</p>
             </div>
             <div className="footer-links">
               <div className="footer-column">

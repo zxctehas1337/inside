@@ -44,7 +44,7 @@ export default function NewsPage() {
           <div className="nav-brand">
             <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}>
               <img src="/icon.ico" alt="Inside" width="32" height="32" style={{ borderRadius: '8px' }} />
-              <span className="version">v3.0.0</span>
+              <span className="version">v3.1.9</span>
             </Link>
           </div>
           <div className="nav-links">
