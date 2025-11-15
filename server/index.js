@@ -42,19 +42,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Хранилище для кодов авторизации (в продакшене использовать Redis)
-const authCodes = new Map(); // { code: { user, expiresAt } }
-
-// Очистка истекших кодов каждые 5 минут
-setInterval(() => {
-  const now = Date.now();
-  for (const [code, data] of authCodes.entries()) {
-    if (data.expiresAt < now) {
-      authCodes.delete(code);
-      console.log(`🗑️  Удален истекший код: ${code}`);
-    }
-  }
-}, 5 * 60 * 1000);
+// Хранилище для кодов авторизации больше не используется - прямой OAuth flow
 
 // Сериализация пользователя для сессии
 passport.serializeUser((user, done) => {
@@ -215,21 +203,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Тестовый endpoint для проверки кодов авторизации
-app.get('/api/auth/debug-codes', (req, res) => {
-  const codes = Array.from(authCodes.entries()).map(([code, data]) => ({
-    code,
-    email: data.user.email,
-    expiresAt: new Date(data.expiresAt).toISOString(),
-    timeLeft: Math.max(0, Math.floor((data.expiresAt - Date.now()) / 1000))
-  }));
-  
-  res.json({ 
-    success: true, 
-    activeCodes: codes.length,
-    codes: codes
-  });
-});
+// Тестовый endpoint удален - используется прямой OAuth flow
 
 // ============= GOOGLE OAUTH ENDPOINTS =============
 
@@ -279,184 +253,15 @@ app.get('/api/auth/google/callback',
     };
     
     if (redirectUrl === 'launcher') {
-      // Для лаунчера - генерируем код авторизации
-      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const expiresAt = Date.now() + 5 * 60 * 1000; // 5 минут
+      // Для лаунчера - перенаправляем на локальный сервер с данными пользователя
+      const userData = encodeURIComponent(JSON.stringify(user));
+      const callbackUrl = `http://localhost:3000/callback?user=${userData}`;
       
-      authCodes.set(code, { user, expiresAt });
-      console.log(`🔑 Сгенерирован код авторизации для лаунчера: ${code} (истекает через 5 минут)`);
+      console.log(`🔄 Перенаправление на локальный сервер лаунчера`);
       console.log(`👤 Пользователь: ${user.email} (ID: ${user.id})`);
       
-      // Показываем страницу с кодом для лаунчера
-      console.log(`📄 Отображаем страницу с кодом для лаунчера`);
-      res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Inside Launcher</title>
-          <style>
-            * {
-              margin: 0;
-              padding: 0;
-              box-sizing: border-box;
-            }
-            body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              background: #0a0a0f;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              min-height: 100vh;
-              color: white;
-              position: relative;
-              overflow: hidden;
-            }
-            body::before {
-              content: '';
-              position: absolute;
-              inset: 0;
-              background: radial-gradient(circle at 50% 50%, rgba(138, 75, 255, 0.1) 0%, transparent 60%);
-              animation: pulse 4s ease-in-out infinite;
-            }
-            @keyframes pulse {
-              0%, 100% { opacity: 0.4; }
-              50% { opacity: 0.8; }
-            }
-            .container {
-              position: relative;
-              z-index: 1;
-              text-align: center;
-              max-width: 400px;
-              width: 100%;
-              padding: 20px;
-            }
-            .logo {
-              margin-bottom: 32px;
-              animation: float 3s ease-in-out infinite;
-            }
-            @keyframes float {
-              0%, 100% { transform: translateY(0px); }
-              50% { transform: translateY(-10px); }
-            }
-            h1 {
-              font-size: 32px;
-              font-weight: 700;
-              background: linear-gradient(135deg, #8A4BFF 0%, #FF6B9D 100%);
-              -webkit-background-clip: text;
-              -webkit-text-fill-color: transparent;
-              background-clip: text;
-              margin-bottom: 48px;
-              letter-spacing: -1px;
-            }
-            .code {
-              font-size: 56px;
-              font-weight: 700;
-              letter-spacing: 12px;
-              font-family: 'Courier New', monospace;
-              background: linear-gradient(135deg, #8A4BFF 0%, #FF6B9D 100%);
-              -webkit-background-clip: text;
-              -webkit-text-fill-color: transparent;
-              background-clip: text;
-              user-select: all;
-              cursor: pointer;
-              margin-bottom: 32px;
-              transition: transform 0.2s;
-            }
-            .code:hover {
-              transform: scale(1.05);
-            }
-            .hint {
-              font-size: 14px;
-              color: rgba(255, 255, 255, 0.5);
-              margin-bottom: 24px;
-            }
-            .timer {
-              font-size: 13px;
-              color: rgba(255, 255, 255, 0.4);
-            }
-            .copied {
-              position: fixed;
-              top: 24px;
-              left: 50%;
-              transform: translateX(-50%);
-              background: rgba(138, 75, 255, 0.2);
-              border: 1px solid rgba(138, 75, 255, 0.4);
-              padding: 12px 24px;
-              border-radius: 8px;
-              font-size: 14px;
-              font-weight: 500;
-              animation: slideDown 0.3s ease-out;
-              display: none;
-            }
-            @keyframes slideDown {
-              from {
-                opacity: 0;
-                transform: translateX(-50%) translateY(-20px);
-              }
-              to {
-                opacity: 1;
-                transform: translateX(-50%) translateY(0);
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="copied" id="copiedMsg">Код скопирован</div>
-          <div class="container">
-            <div class="logo">
-              <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="url(#gradient1)"/>
-                <path d="M2 17L12 22L22 17V7L12 12L2 7V17Z" fill="url(#gradient2)"/>
-                <defs>
-                  <linearGradient id="gradient1" x1="2" y1="2" x2="22" y2="12">
-                    <stop offset="0%" stop-color="#8A4BFF"/>
-                    <stop offset="100%" stop-color="#FF6B9D"/>
-                  </linearGradient>
-                  <linearGradient id="gradient2" x1="2" y1="7" x2="22" y2="22">
-                    <stop offset="0%" stop-color="#6C37D7"/>
-                    <stop offset="100%" stop-color="#8A4BFF"/>
-                  </linearGradient>
-                </defs>
-              </svg>
-            </div>
-            <h1>Inside Client</h1>
-            <div class="code" id="authCode" onclick="copyCode()">${code}</div>
-            <div class="hint">Вставьте код в лаунчер</div>
-            <div class="timer">Действителен <span id="timeLeft">5:00</span></div>
-          </div>
-
-          <script>
-            function copyCode() {
-              const code = document.getElementById('authCode').textContent;
-              navigator.clipboard.writeText(code).then(() => {
-                const msg = document.getElementById('copiedMsg');
-                msg.style.display = 'block';
-                setTimeout(() => {
-                  msg.style.display = 'none';
-                }, 2000);
-              });
-            }
-
-            let timeLeft = 5 * 60;
-            const timerElement = document.getElementById('timeLeft');
-            
-            setInterval(() => {
-              timeLeft--;
-              if (timeLeft <= 0) {
-                timerElement.textContent = 'Истек';
-                return;
-              }
-              const minutes = Math.floor(timeLeft / 60);
-              const seconds = timeLeft % 60;
-              timerElement.textContent = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
-            }, 1000);
-
-            window.onload = () => copyCode();
-          </script>
-        </body>
-        </html>
-      `);
+      // Перенаправляем на локальный сервер лаунчера
+      res.redirect(callbackUrl);
     } else {
       // Для веба - перенаправляем на дашборд с данными пользователя
       const userData = encodeURIComponent(JSON.stringify(user));
@@ -510,33 +315,7 @@ app.post('/api/auth/admin', async (req, res) => {
   }
 });
 
-// Проверка кода авторизации
-app.post('/api/auth/verify-code', async (req, res) => {
-  const { code } = req.body;
-
-  if (!code) {
-    return res.json({ success: false, message: 'Код не указан' });
-  }
-
-  const authData = authCodes.get(code.toUpperCase());
-
-  if (!authData) {
-    console.log(`❌ Неверный код: ${code}`);
-    return res.json({ success: false, message: 'Неверный код авторизации' });
-  }
-
-  if (authData.expiresAt < Date.now()) {
-    authCodes.delete(code.toUpperCase());
-    console.log(`⏱️  Истекший код: ${code}`);
-    return res.json({ success: false, message: 'Код авторизации истек' });
-  }
-
-  // Удаляем использованный код
-  authCodes.delete(code.toUpperCase());
-  console.log(`✅ Код успешно использован: ${code} для пользователя ${authData.user.email}`);
-
-  res.json({ success: true, data: authData.user });
-});
+// Endpoint для проверки кода удален - используется прямой OAuth flow
 
 // Выход из системы
 app.get('/api/auth/logout', (req, res) => {
