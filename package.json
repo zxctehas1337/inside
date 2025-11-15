@@ -5,9 +5,9 @@
   "main": "auth.js",
   "scripts": {
     "dev": "concurrently \"node server/index.js\" \"vite --config vite.config.ts\"",
-    "build": "tsc && vite build",
+    "build": "tsc && npx vite build",
     "start": "node server/index.js",
-    "preview": "vite preview",
+    "preview": "npx vite preview",
     "server": "node server/index.js"
   },
   "repository": {
