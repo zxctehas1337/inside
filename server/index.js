@@ -325,6 +325,44 @@ async function initDatabase() {
       )
     `);
     
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS comments (
+        id SERIAL PRIMARY KEY,
+        news_id INTEGER REFERENCES news(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS comment_reactions (
+        id SERIAL PRIMARY KEY,
+        comment_id INTEGER REFERENCES comments(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        reaction VARCHAR(10) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(comment_id, user_id, reaction)
+      )
+    `);
+    
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS premium_chat (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        message TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_comments_news_id ON comments(news_id);
+      CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
+      CREATE INDEX IF NOT EXISTS idx_comment_reactions_comment_id ON comment_reactions(comment_id);
+      CREATE INDEX IF NOT EXISTS idx_premium_chat_created_at ON premium_chat(created_at DESC);
+    `);
+    
     console.log('✅ База данных инициализирована');
     await createDefaultAdmin();
   } catch (error) {
@@ -1230,6 +1268,220 @@ app.delete('/api/news/:id', async (req, res) => {
     res.json({ success: true, message: 'Новость удалена', title: result.rows[0].title });
   } catch (error) {
     console.error('Delete news error:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
+  }
+});
+
+// ============= COMMENTS API =============
+
+// Получить комментарии к новости
+app.get('/api/news/:newsId/comments', async (req, res) => {
+  const { newsId } = req.params;
+
+  try {
+    const result = await pool.query(`
+      SELECT 
+        c.id, c.content, c.created_at, c.updated_at,
+        u.id as user_id, u.username, u.avatar, u.subscription,
+        COALESCE(
+          json_agg(
+            json_build_object('reaction', cr.reaction, 'count', cr.count)
+          ) FILTER (WHERE cr.reaction IS NOT NULL),
+          '[]'
+        ) as reactions
+      FROM comments c
+      JOIN users u ON c.user_id = u.id
+      LEFT JOIN (
+        SELECT comment_id, reaction, COUNT(*) as count
+        FROM comment_reactions
+        GROUP BY comment_id, reaction
+      ) cr ON c.id = cr.comment_id
+      WHERE c.news_id = $1
+      GROUP BY c.id, c.content, c.created_at, c.updated_at, u.id, u.username, u.avatar, u.subscription
+      ORDER BY c.created_at DESC
+    `, [newsId]);
+
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error('Get comments error:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
+  }
+});
+
+// Создать комментарий
+app.post('/api/news/:newsId/comments', apiLimiter, async (req, res) => {
+  const { newsId } = req.params;
+  const { userId, content } = req.body;
+
+  if (!content || content.trim().length === 0) {
+    return res.status(400).json({ success: false, message: 'Комментарий не может быть пустым' });
+  }
+
+  try {
+    const result = await pool.query(`
+      INSERT INTO comments (news_id, user_id, content)
+      VALUES ($1, $2, $3)
+      RETURNING id, news_id, user_id, content, created_at, updated_at
+    `, [newsId, userId, content.trim()]);
+
+    const userResult = await pool.query(
+      'SELECT username, avatar, subscription FROM users WHERE id = $1',
+      [userId]
+    );
+
+    const comment = {
+      ...result.rows[0],
+      username: userResult.rows[0].username,
+      avatar: userResult.rows[0].avatar,
+      subscription: userResult.rows[0].subscription,
+      reactions: []
+    };
+
+    console.log(`✅ Комментарий создан: News ID ${newsId}, User ID ${userId}`);
+    res.json({ success: true, data: comment });
+  } catch (error) {
+    console.error('Create comment error:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
+  }
+});
+
+// Удалить комментарий
+app.delete('/api/comments/:id', apiLimiter, async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.body;
+
+  try {
+    const checkResult = await pool.query(
+      'SELECT user_id FROM comments WHERE id = $1',
+      [id]
+    );
+
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Комментарий не найден' });
+    }
+
+    const userResult = await pool.query(
+      'SELECT is_admin FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (checkResult.rows[0].user_id !== userId && !userResult.rows[0]?.is_admin) {
+      return res.status(403).json({ success: false, message: 'Нет прав на удаление' });
+    }
+
+    await pool.query('DELETE FROM comments WHERE id = $1', [id]);
+
+    console.log(`✅ Комментарий удален: ID ${id}`);
+    res.json({ success: true, message: 'Комментарий удален' });
+  } catch (error) {
+    console.error('Delete comment error:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
+  }
+});
+
+// Добавить/удалить реакцию
+app.post('/api/comments/:id/reaction', apiLimiter, async (req, res) => {
+  const { id } = req.params;
+  const { userId, reaction } = req.body;
+
+  const validReactions = ['👍', '❤️', '🔥', '😂', '😮', '😢'];
+  if (!validReactions.includes(reaction)) {
+    return res.status(400).json({ success: false, message: 'Недопустимая реакция' });
+  }
+
+  try {
+    const existingReaction = await pool.query(
+      'SELECT id FROM comment_reactions WHERE comment_id = $1 AND user_id = $2 AND reaction = $3',
+      [id, userId, reaction]
+    );
+
+    if (existingReaction.rows.length > 0) {
+      await pool.query(
+        'DELETE FROM comment_reactions WHERE comment_id = $1 AND user_id = $2 AND reaction = $3',
+        [id, userId, reaction]
+      );
+      res.json({ success: true, action: 'removed' });
+    } else {
+      await pool.query(
+        'INSERT INTO comment_reactions (comment_id, user_id, reaction) VALUES ($1, $2, $3)',
+        [id, userId, reaction]
+      );
+      res.json({ success: true, action: 'added' });
+    }
+  } catch (error) {
+    console.error('Reaction error:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
+  }
+});
+
+// ============= PREMIUM CHAT API =============
+
+// Получить сообщения чата (только для premium/alpha)
+app.get('/api/premium-chat', async (req, res) => {
+  const { userId } = req.query;
+
+  try {
+    const userResult = await pool.query(
+      'SELECT subscription FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (userResult.rows.length === 0 || !['premium', 'alpha'].includes(userResult.rows[0].subscription)) {
+      return res.status(403).json({ success: false, message: 'Доступ только для Premium/Alpha пользователей' });
+    }
+
+    const result = await pool.query(`
+      SELECT 
+        pc.id, pc.message, pc.created_at,
+        u.id as user_id, u.username, u.avatar, u.subscription
+      FROM premium_chat pc
+      JOIN users u ON pc.user_id = u.id
+      ORDER BY pc.created_at DESC
+      LIMIT 100
+    `);
+
+    res.json({ success: true, data: result.rows.reverse() });
+  } catch (error) {
+    console.error('Get premium chat error:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
+  }
+});
+
+// Отправить сообщение в чат (только для premium/alpha)
+app.post('/api/premium-chat', apiLimiter, async (req, res) => {
+  const { userId, message } = req.body;
+
+  if (!message || message.trim().length === 0) {
+    return res.status(400).json({ success: false, message: 'Сообщение не может быть пустым' });
+  }
+
+  try {
+    const userResult = await pool.query(
+      'SELECT username, avatar, subscription FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (userResult.rows.length === 0 || !['premium', 'alpha'].includes(userResult.rows[0].subscription)) {
+      return res.status(403).json({ success: false, message: 'Доступ только для Premium/Alpha пользователей' });
+    }
+
+    const result = await pool.query(
+      'INSERT INTO premium_chat (user_id, message) VALUES ($1, $2) RETURNING id, message, created_at',
+      [userId, message.trim()]
+    );
+
+    const chatMessage = {
+      ...result.rows[0],
+      user_id: userId,
+      username: userResult.rows[0].username,
+      avatar: userResult.rows[0].avatar,
+      subscription: userResult.rows[0].subscription
+    };
+
+    console.log(`✅ Premium chat message: User ${userId}`);
+    res.json({ success: true, data: chatMessage });
+  } catch (error) {
+    console.error('Send premium chat error:', error);
     res.status(500).json({ success: false, message: 'Ошибка сервера' });
   }
 });

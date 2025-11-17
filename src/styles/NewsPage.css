@@ -162,10 +162,16 @@
 }
 
 .news-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(350px, 100%), 1fr));
-    gap: clamp(16px, 2vw, 24px);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(32px, 4vw, 48px);
     width: 100%;
+}
+
+.news-article-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
 }
 
 .news-article {

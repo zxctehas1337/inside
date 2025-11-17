@@ -1,0 +1,46 @@
+### Тестирование API комментариев и чата
+
+@baseUrl = http://localhost:8080
+@newsId = 1
+@userId = 1
+
+### Получить комментарии к новости
+GET {{baseUrl}}/api/news/{{newsId}}/comments
+
+### Создать комментарий
+POST {{baseUrl}}/api/news/{{newsId}}/comments
+Content-Type: application/json
+
+{
+  "userId": {{userId}},
+  "content": "Отличная новость! 🔥"
+}
+
+### Добавить реакцию к комментарию
+POST {{baseUrl}}/api/comments/1/reaction
+Content-Type: application/json
+
+{
+  "userId": {{userId}},
+  "reaction": "👍"
+}
+
+### Удалить комментарий
+DELETE {{baseUrl}}/api/comments/1
+Content-Type: application/json
+
+{
+  "userId": {{userId}}
+}
+
+### Получить сообщения Premium Chat
+GET {{baseUrl}}/api/premium-chat?userId={{userId}}
+
+### Отправить сообщение в Premium Chat
+POST {{baseUrl}}/api/premium-chat
+Content-Type: application/json
+
+{
+  "userId": {{userId}},
+  "message": "Привет всем в премиум чате! ⭐"
+}

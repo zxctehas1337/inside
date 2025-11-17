@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { NewsPost } from '../types'
 import AnimatedBackground from '../components/AnimatedBackground'
+import CommentsSection from '../components/CommentsSection'
 import { getCurrentUser } from '../utils/database'
 import { initAnalytics, trackPageView } from '../utils/analytics'
 import '../styles/NewsPage.css'
@@ -125,31 +126,34 @@ export default function NewsPage() {
           ) : (
             <div className="news-grid">
               {filteredNews.map(post => (
-                <article key={post.id} className="news-article">
-                  <div className="news-article-header">
-                    <span className={`news-type-badge ${post.type}`}>
-                      {post.type === 'launcher' ? 'Лаунчер' : 'Сайт'}
-                    </span>
-                    <span className="news-date">
-                      {new Date(post.date).toLocaleDateString('ru-RU', { 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                      })}
-                    </span>
-                  </div>
-                  <h2>{post.title}</h2>
-                  <p>{post.content}</p>
-                  <div className="news-article-footer">
-                    <div className="news-author">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                        <circle cx="8" cy="5" r="3"/>
-                        <path d="M8 10C4.68629 10 2 11.7909 2 14H14C14 11.7909 11.3137 10 8 10Z"/>
-                      </svg>
-                      <span>{post.author}</span>
+                <div key={post.id} className="news-article-wrapper">
+                  <article className="news-article">
+                    <div className="news-article-header">
+                      <span className={`news-type-badge ${post.type}`}>
+                        {post.type === 'launcher' ? 'Лаунчер' : 'Сайт'}
+                      </span>
+                      <span className="news-date">
+                        {new Date(post.date).toLocaleDateString('ru-RU', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}
+                      </span>
                     </div>
-                  </div>
-                </article>
+                    <h2>{post.title}</h2>
+                    <p>{post.content}</p>
+                    <div className="news-article-footer">
+                      <div className="news-author">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                          <circle cx="8" cy="5" r="3"/>
+                          <path d="M8 10C4.68629 10 2 11.7909 2 14H14C14 11.7909 11.3137 10 8 10Z"/>
+                        </svg>
+                        <span>{post.author}</span>
+                      </div>
+                    </div>
+                  </article>
+                  <CommentsSection newsId={post.id} />
+                </div>
               ))}
             </div>
           )}

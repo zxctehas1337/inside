@@ -62,6 +62,7 @@ export default function HomePage() {
             <a href="#features">Возможности</a>
             <a href="#pricing">Цены</a>
             <Link to="/news">Новости</Link>
+            <Link to="/premium-chat">Premium Chat</Link>
             <a href="#download">Скачать</a>
             <a href="#faq">FAQ</a>
             {!currentUser && <Link to="/auth">Войти</Link>}
