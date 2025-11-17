@@ -6,10 +6,48 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const YandexStrategy = require('passport-yandex').Strategy;
 const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const { body, validationResult } = require('express-validator');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+
+// ============= ЗАЩИТА ОТ DDOS И АТАК =============
+
+// Helmet - защита HTTP заголовков
+app.use(helmet({
+  contentSecurityPolicy: false, // Отключаем для OAuth
+  crossOriginEmbedderPolicy: false
+}));
+
+// Rate Limiting - защита от DDoS
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 минут
+  max: 100, // максимум 100 запросов с одного IP
+  message: { success: false, message: 'Слишком много запросов, попробуйте позже' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Строгий лимит для авторизации
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 минут
+  max: 5, // максимум 5 попыток входа
+  message: { success: false, message: 'Слишком много попыток входа, попробуйте через 15 минут' },
+  skipSuccessfulRequests: true,
+});
+
+// Лимит для API запросов
+const apiLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 минута
+  max: 30, // максимум 30 запросов в минуту
+  message: { success: false, message: 'Превышен лимит запросов к API' },
+});
+
+// Применяем общий лимит ко всем запросам
+app.use(generalLimiter);
 
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'your-jwt-secret-key';
@@ -29,7 +67,10 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json());
+
+// Защита от больших payload (защита от DoS через большие запросы)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Инициализация Passport (без сессий)
 app.use(passport.initialize());
@@ -458,16 +499,28 @@ app.get('/api/auth/yandex/callback',
 );
 
 // Вход администратора
-app.post('/api/auth/admin', async (req, res) => {
-  const { email, password } = req.body;
+app.post('/api/auth/admin', 
+  authLimiter, // Применяем строгий лимит
+  [
+    body('email').isEmail().normalizeEmail().trim().escape(),
+    body('password').isLength({ min: 1 }).trim()
+  ],
+  async (req, res) => {
+    // Проверка валидации
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, message: 'Неверный формат данных' });
+    }
 
-  console.log(`🔐 Попытка входа администратора: email=${email}`);
+    const { email, password } = req.body;
 
-  try {
-    const result = await pool.query(
-      'SELECT id, username, email, password, subscription, registered_at, is_admin, is_banned, avatar, uid, settings FROM users WHERE email = $1 AND is_admin = true',
-      [email]
-    );
+    console.log(`🔐 Попытка входа администратора: email=${email}`);
+
+    try {
+      const result = await pool.query(
+        'SELECT id, username, email, password, subscription, registered_at, is_admin, is_banned, avatar, uid, settings FROM users WHERE email = $1 AND is_admin = true',
+        [email]
+      );
 
     if (result.rows.length === 0) {
       console.log(`❌ Администратор не найден: ${email}`);
@@ -513,9 +566,15 @@ app.get('/api/auth/logout', (req, res) => {
 });
 
 // Обновление пользователя
-app.patch('/api/users/:id', async (req, res) => {
+app.patch('/api/users/:id', apiLimiter, async (req, res) => {
   const { id } = req.params;
   const userId = parseInt(id, 10);
+  
+  // Валидация ID
+  if (isNaN(userId) || userId < 1) {
+    return res.status(400).json({ success: false, message: 'Неверный ID пользователя' });
+  }
+  
   const updates = req.body;
 
   try {
@@ -573,9 +632,14 @@ app.patch('/api/users/:id', async (req, res) => {
 });
 
 // Получение информации о пользователе
-app.get('/api/users/:id', async (req, res) => {
+app.get('/api/users/:id', apiLimiter, async (req, res) => {
   const { id } = req.params;
   const userId = parseInt(id, 10);
+  
+  // Валидация ID
+  if (isNaN(userId) || userId < 1) {
+    return res.status(400).json({ success: false, message: 'Неверный ID пользователя' });
+  }
 
   try {
     const result = await pool.query(
@@ -611,7 +675,7 @@ app.get('/api/users/:id', async (req, res) => {
 });
 
 // Получение всех пользователей (для админки)
-app.get('/api/users', async (req, res) => {
+app.get('/api/users', apiLimiter, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT id, username, email, subscription, registered_at, is_admin, is_banned, avatar, uid, settings 
@@ -639,15 +703,27 @@ app.get('/api/users', async (req, res) => {
 });
 
 // Изменение подписки пользователя (только для администратора)
-app.patch('/api/users/:id/subscription', async (req, res) => {
-  const { id } = req.params;
-  const userId = parseInt(id, 10);
-  const { subscription } = req.body;
+app.patch('/api/users/:id/subscription', 
+  apiLimiter,
+  [
+    body('subscription').isIn(['free', 'premium', 'alpha'])
+  ],
+  async (req, res) => {
+    // Проверка валидации
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, message: 'Неверный тип подписки' });
+    }
 
-  const validSubscriptions = ['free', 'premium', 'alpha'];
-  if (!validSubscriptions.includes(subscription)) {
-    return res.json({ success: false, message: 'Неверный тип подписки' });
-  }
+    const { id } = req.params;
+    const userId = parseInt(id, 10);
+    
+    // Валидация ID
+    if (isNaN(userId) || userId < 1) {
+      return res.status(400).json({ success: false, message: 'Неверный ID пользователя' });
+    }
+    
+    const { subscription } = req.body;
 
   try {
     const result = await pool.query(
@@ -684,9 +760,14 @@ app.patch('/api/users/:id/subscription', async (req, res) => {
 });
 
 // Удаление пользователя
-app.delete('/api/users/:id', async (req, res) => {
+app.delete('/api/users/:id', apiLimiter, async (req, res) => {
   const { id } = req.params;
   const userId = parseInt(id, 10);
+  
+  // Валидация ID
+  if (isNaN(userId) || userId < 1) {
+    return res.status(400).json({ success: false, message: 'Неверный ID пользователя' });
+  }
 
   try {
     const checkUser = await pool.query(
@@ -725,10 +806,27 @@ app.delete('/api/users/:id', async (req, res) => {
 });
 
 // Загрузка пользовательской аватарки
-app.post('/api/users/:id/avatar', async (req, res) => {
-  const { id } = req.params;
-  const userId = parseInt(id, 10);
-  const { avatar } = req.body;
+app.post('/api/users/:id/avatar', 
+  apiLimiter,
+  [
+    body('avatar').isURL().trim()
+  ],
+  async (req, res) => {
+    // Проверка валидации
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, message: 'Неверный формат URL аватара' });
+    }
+
+    const { id } = req.params;
+    const userId = parseInt(id, 10);
+    
+    // Валидация ID
+    if (isNaN(userId) || userId < 1) {
+      return res.status(400).json({ success: false, message: 'Неверный ID пользователя' });
+    }
+    
+    const { avatar } = req.body;
 
   try {
     const result = await pool.query(
@@ -767,9 +865,14 @@ app.post('/api/users/:id/avatar', async (req, res) => {
 });
 
 // Удаление пользовательской аватарки
-app.delete('/api/users/:id/avatar', async (req, res) => {
+app.delete('/api/users/:id/avatar', apiLimiter, async (req, res) => {
   const { id } = req.params;
   const userId = parseInt(id, 10);
+  
+  // Валидация ID
+  if (isNaN(userId) || userId < 1) {
+    return res.status(400).json({ success: false, message: 'Неверный ID пользователя' });
+  }
 
   try {
     const result = await pool.query(
@@ -855,8 +958,21 @@ app.get('/api/client/version', async (req, res) => {
   }
 });
 
-app.post('/api/client/version', async (req, res) => {
-  const { version, downloadUrl, changelog, userId } = req.body;
+app.post('/api/client/version', 
+  apiLimiter,
+  [
+    body('version').isLength({ min: 1, max: 50 }).trim(),
+    body('downloadUrl').isURL().trim(),
+    body('userId').isInt({ min: 1 })
+  ],
+  async (req, res) => {
+    // Проверка валидации
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, message: 'Неверный формат данных' });
+    }
+
+    const { version, downloadUrl, changelog, userId } = req.body;
 
   try {
     const userCheck = await pool.query(

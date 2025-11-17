@@ -128,7 +128,7 @@ export default function AuthPage() {
                   className="btn btn-yandex btn-full"
                   style={{ marginTop: '12px' }}
                 >
-                  <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" fill="#FC3F1D"/>
                     <path d="M13.5 7.5H11.2C9.3 7.5 8.5 8.6 8.5 10.1C8.5 11.9 9.4 12.8 10.7 13.7L12.3 14.8L8.3 20.5H5.5L9.2 15.2C7.4 13.9 6 12.5 6 10.1C6 7.3 7.9 5 11.2 5H16V20.5H13.5V7.5Z" fill="white"/>
                   </svg>
