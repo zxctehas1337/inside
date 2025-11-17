@@ -4,6 +4,7 @@ const path = require('path');
 const { Pool } = require('pg');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const YandexStrategy = require('passport-yandex').Strategy;
 const session = require('express-session');
 require('dotenv').config();
 
@@ -132,6 +133,83 @@ passport.use(new GoogleStrategy({
   }
 ));
 
+// Yandex OAuth Strategy
+passport.use(new YandexStrategy({
+    clientID: process.env.YANDEX_CLIENT_ID,
+    clientSecret: process.env.YANDEX_CLIENT_SECRET,
+    callbackURL: process.env.YANDEX_CALLBACK_URL || 'https://oneshakedown.onrender.com/api/auth/yandex/callback'
+  },
+  async (accessToken, refreshToken, profile, done) => {
+    try {
+      // Получаем аватарку из Yandex профиля
+      const yandexAvatar = profile.photos && profile.photos.length > 0 ? profile.photos[0].value : null;
+      const email = profile.emails && profile.emails.length > 0 ? profile.emails[0].value : null;
+      
+      if (!email) {
+        return done(new Error('Email не предоставлен Yandex'), null);
+      }
+      
+      // Проверяем, существует ли пользователь с таким Yandex ID
+      let result = await pool.query(
+        'SELECT * FROM users WHERE yandex_id = $1',
+        [profile.id]
+      );
+
+      if (result.rows.length > 0) {
+        // Обновляем yandex_avatar для возможности восстановления
+        const user = result.rows[0];
+        const updateResult = await pool.query(
+          'UPDATE users SET yandex_avatar = $1 WHERE yandex_id = $2 RETURNING *',
+          [yandexAvatar, profile.id]
+        );
+        return done(null, updateResult.rows[0]);
+      }
+
+      // Проверяем, существует ли пользователь с таким email
+      result = await pool.query(
+        'SELECT * FROM users WHERE email = $1',
+        [email]
+      );
+
+      if (result.rows.length > 0) {
+        // Обновляем существующего пользователя, добавляя Yandex ID
+        const user = result.rows[0];
+        const avatarToSet = user.custom_avatar ? user.custom_avatar : (yandexAvatar || user.avatar);
+        const updateResult = await pool.query(
+          'UPDATE users SET yandex_id = $1, email_verified = true, yandex_avatar = $2, avatar = $3 WHERE id = $4 RETURNING *',
+          [profile.id, yandexAvatar, avatarToSet, result.rows[0].id]
+        );
+        return done(null, updateResult.rows[0]);
+      }
+
+      // Создаем нового пользователя
+      const username = (profile.displayName || email.split('@')[0]) + '_' + Math.floor(Math.random() * 1000);
+      
+      // Сначала создаем пользователя без UID
+      const newUserResult = await pool.query(
+        `INSERT INTO users (username, email, password, yandex_id, email_verified, subscription, avatar, yandex_avatar) 
+         VALUES ($1, $2, $3, $4, true, 'free', $5, $6) 
+         RETURNING *`,
+        [username, email, '', profile.id, yandexAvatar, yandexAvatar]
+      );
+      
+      // Генерируем UID на основе года регистрации и ID
+      const year = new Date(newUserResult.rows[0].registered_at).getFullYear();
+      const uid = `AZ-${year}-${String(newUserResult.rows[0].id).padStart(3, '0')}`;
+      
+      // Обновляем пользователя с UID
+      const updatedUserResult = await pool.query(
+        'UPDATE users SET uid = $1 WHERE id = $2 RETURNING *',
+        [uid, newUserResult.rows[0].id]
+      );
+
+      return done(null, updatedUserResult.rows[0]);
+    } catch (error) {
+      return done(error, null);
+    }
+  }
+));
+
 // Serve static files from the dist directory
 app.use(express.static(path.join(__dirname, '../dist')));
 
@@ -145,6 +223,7 @@ async function initDatabase() {
         email VARCHAR(255) UNIQUE NOT NULL,
         password TEXT,
         google_id VARCHAR(255) UNIQUE,
+        yandex_id VARCHAR(255) UNIQUE,
         subscription VARCHAR(50) DEFAULT 'free',
         registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         is_admin BOOLEAN DEFAULT false,
@@ -152,6 +231,7 @@ async function initDatabase() {
         email_verified BOOLEAN DEFAULT false,
         avatar TEXT,
         google_avatar TEXT,
+        yandex_avatar TEXT,
         custom_avatar TEXT,
         uid VARCHAR(50) UNIQUE,
         settings JSONB DEFAULT '{"notifications": true, "autoUpdate": true, "theme": "dark", "language": "ru"}'::jsonb
@@ -162,9 +242,11 @@ async function initDatabase() {
     await pool.query(`
       ALTER TABLE users 
       ADD COLUMN IF NOT EXISTS google_id VARCHAR(255) UNIQUE,
+      ADD COLUMN IF NOT EXISTS yandex_id VARCHAR(255) UNIQUE,
       ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false,
       ADD COLUMN IF NOT EXISTS avatar TEXT,
       ADD COLUMN IF NOT EXISTS google_avatar TEXT,
+      ADD COLUMN IF NOT EXISTS yandex_avatar TEXT,
       ADD COLUMN IF NOT EXISTS custom_avatar TEXT,
       ADD COLUMN IF NOT EXISTS uid VARCHAR(50) UNIQUE
     `);
@@ -311,6 +393,73 @@ app.get('/api/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/auth' }),
   (req, res) => {
     console.log(`✅ Google OAuth успешен для пользователя: ${req.user.email}`);
+    console.log(`🔍 Все query параметры:`, req.query);
+    
+    // Получаем redirect URL из state параметра
+    let redirectUrl = req.query.state || 'web';
+    
+    // Резервная проверка: если state не передался, но в User-Agent есть признаки лаунчера
+    if (redirectUrl === 'web' && req.headers['user-agent']) {
+      const userAgent = req.headers['user-agent'].toLowerCase();
+      if (userAgent.includes('electron') || userAgent.includes('launcher')) {
+        redirectUrl = 'launcher';
+        console.log(`🔄 Обнаружен лаунчер по User-Agent, переключаем на launcher режим`);
+      }
+    }
+    
+    console.log(`📋 Финальный redirect URL: ${redirectUrl}`);
+    
+    // Успешная аутентификация
+    const user = {
+      id: req.user.id,
+      username: req.user.username,
+      email: req.user.email,
+      subscription: req.user.subscription,
+      registeredAt: req.user.registered_at,
+      isAdmin: req.user.is_admin,
+      isBanned: req.user.is_banned,
+      avatar: req.user.avatar,
+      uid: req.user.uid,
+      settings: req.user.settings
+    };
+    
+    if (redirectUrl === 'launcher') {
+      // Для лаунчера - перенаправляем на локальный сервер с данными пользователя
+      const userData = encodeURIComponent(JSON.stringify(user));
+      const callbackUrl = `http://localhost:3000/callback?user=${userData}`;
+      
+      console.log(`🔄 Перенаправление на локальный сервер лаунчера`);
+      console.log(`👤 Пользователь: ${user.email} (ID: ${user.id})`);
+      
+      // Перенаправляем на локальный сервер лаунчера
+      res.redirect(callbackUrl);
+    } else {
+      // Для веба - перенаправляем на дашборд с данными пользователя
+      const userData = encodeURIComponent(JSON.stringify(user));
+      console.log(`🌐 Перенаправление на веб-дашборд для пользователя: ${user.email}`);
+      res.redirect(`/dashboard?auth=success&user=${userData}`);
+    }
+  }
+);
+
+// ============= YANDEX OAUTH ENDPOINTS =============
+
+// Инициация Yandex OAuth
+app.get('/api/auth/yandex', (req, res, next) => {
+  // Передаем redirect параметр через state для надежности
+  const redirectUrl = req.query.redirect || 'web';
+  console.log(`🔗 Yandex Redirect URL: ${redirectUrl}`);
+  
+  passport.authenticate('yandex', { 
+    state: redirectUrl
+  })(req, res, next);
+});
+
+// Yandex OAuth callback
+app.get('/api/auth/yandex/callback',
+  passport.authenticate('yandex', { failureRedirect: '/auth' }),
+  (req, res) => {
+    console.log(`✅ Yandex OAuth успешен для пользователя: ${req.user.email}`);
     console.log(`🔍 Все query параметры:`, req.query);
     
     // Получаем redirect URL из state параметра
@@ -1043,10 +1192,13 @@ app.listen(PORT, () => {
   console.log('╚════════════════════════════════════════════════════════════╝\n');
   console.log(`✅ Сервер запущен на порту ${PORT}`);
   console.log(`🔐 Google OAuth: ${process.env.GOOGLE_CLIENT_ID ? 'Настроен' : 'Не настроен'}`);
+  console.log(`🔐 Yandex OAuth: ${process.env.YANDEX_CLIENT_ID ? 'Настроен' : 'Не настроен'}`);
   console.log(`🗄️  База данных: Подключена\n`);
   console.log('📝 Доступные эндпоинты:');
   console.log('   GET  /api/auth/google - Вход через Google');
   console.log('   GET  /api/auth/google/callback - Google OAuth callback');
+  console.log('   GET  /api/auth/yandex - Вход через Yandex');
+  console.log('   GET  /api/auth/yandex/callback - Yandex OAuth callback');
   console.log('   POST /api/auth/admin - Вход администратора');
   console.log('   GET  /api/auth/logout - Выход из системы');
   console.log('   GET  /api/users - Список пользователей');
@@ -1058,10 +1210,16 @@ app.listen(PORT, () => {
   console.log('   POST /api/analytics - Запись события аналитики');
   console.log('   GET  /api/analytics/stats - Получение статистики\n');
   console.log('🔗 Authorized redirect URIs:');
-  console.log(`   ${process.env.GOOGLE_CALLBACK_URL || 'https://oneshakedown.onrender.com/api/auth/google/callback'}`);
-  console.log('   http://localhost:8080/api/auth/google/callback\n');
-  console.log('🌐 Authorized JavaScript origins:');
+  console.log('   Google:');
+  console.log(`     ${process.env.GOOGLE_CALLBACK_URL || 'https://oneshakedown.onrender.com/api/auth/google/callback'}`);
+  console.log('     http://localhost:8080/api/auth/google/callback');
+  console.log('   Yandex:');
+  console.log(`     ${process.env.YANDEX_CALLBACK_URL || 'https://oneshakedown.onrender.com/api/auth/yandex/callback'}`);
+  console.log('     http://localhost:8080/api/auth/yandex/callback');
+  console.log('     http://localhost:3000/callback (для лаунчера)\n');
+  console.log('🌐 Authorized JavaScript origins / Suggest Hostname:');
   console.log('   https://oneshakedown.onrender.com');
-  console.log('   http://localhost:8080\n');
+  console.log('   http://localhost:8080');
+  console.log('   localhost\n');
   console.log('═══════════════════════════════════════════════════════════════\n');
 });

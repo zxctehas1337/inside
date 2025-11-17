@@ -102,7 +102,7 @@ export default function AuthPage() {
 
           <div className="auth-title">
             <h2>Войти в систему</h2>
-            <p>Используйте Google аккаунт для входа</p>
+            <p>Используйте Google или Yandex аккаунт для входа</p>
           </div>
 
           <div className="auth-form active">
@@ -119,6 +119,18 @@ export default function AuthPage() {
                     <path d="M18.1713 8.36796H17.5V8.33337H10V11.6667H14.7096C14.3809 12.5902 13.7889 13.3972 13.0067 13.9879L13.0079 13.9871L15.5871 16.1696C15.4046 16.3355 18.3333 14.1667 18.3333 10C18.3333 9.44129 18.2758 8.89587 18.1713 8.36796Z" fill="#1976D2"/>
                   </svg>
                   Войти через Google
+                </a>
+
+                <a 
+                  href={`${import.meta.env.VITE_API_URL || 'https://oneshakedown.onrender.com'}/api/auth/yandex`}
+                  className="btn btn-yandex btn-full"
+                  style={{ marginTop: '12px' }}
+                >
+                  <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" fill="#FC3F1D"/>
+                    <path d="M13.5 7.5H11.2C9.3 7.5 8.5 8.6 8.5 10.1C8.5 11.9 9.4 12.8 10.7 13.7L12.3 14.8L8.3 20.5H5.5L9.2 15.2C7.4 13.9 6 12.5 6 10.1C6 7.3 7.9 5 11.2 5H16V20.5H13.5V7.5Z" fill="white"/>
+                  </svg>
+                  Войти через Yandex
                 </a>
 
                 <div className="divider">
