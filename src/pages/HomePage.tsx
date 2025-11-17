@@ -4,6 +4,7 @@ import AnimatedBackground from '../components/AnimatedBackground'
 import SponsorsSection from '../components/SponsorsSection'
 import { DOWNLOAD_LINKS } from '../utils/constants'
 import { getCurrentUser } from '../utils/database'
+import { initAnalytics, trackPageView, trackButtonClick, trackLinkClick } from '../utils/analytics'
 import '../styles/HomePage.css'
 
 export default function HomePage() {
@@ -15,6 +16,12 @@ export default function HomePage() {
   const [ramAllocation, setRamAllocation] = useState(4096)
   const [launcherNews, setLauncherNews] = useState<any[]>([])
   const currentUser = getCurrentUser()
+
+  // Инициализация аналитики
+  useEffect(() => {
+    initAnalytics(currentUser?.id)
+    trackPageView('/')
+  }, [])
 
   // Загружаем новости при переключении на вкладку News
   useEffect(() => {
@@ -96,13 +103,13 @@ export default function HomePage() {
             оптимизацией производительности и современным интерфейсом
           </p>
           <div className="hero-buttons">
-            <a href="#pricing" className="btn btn-primary">
+            <a href="#pricing" className="btn btn-primary" onClick={() => trackButtonClick('download_hero')}>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path d="M10 3V17M10 17L16 11M10 17L4 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
               Скачать клиент
             </a>
-            <a href="#features" className="btn btn-secondary">
+            <a href="#features" className="btn btn-secondary" onClick={() => trackButtonClick('learn_more')}>
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path d="M10 14L16 8M16 8H10M16 8V14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               </svg>
@@ -530,9 +537,9 @@ export default function HomePage() {
                 </li>
               </ul>
               {currentUser ? (
-                <a href={DOWNLOAD_LINKS.free} className="btn btn-outline" download>Скачать бесплатно</a>
+                <a href={DOWNLOAD_LINKS.free} className="btn btn-outline" download onClick={() => trackButtonClick('download_free')}>Скачать бесплатно</a>
               ) : (
-                <Link to="/auth" className="btn btn-outline">Скачать бесплатно</Link>
+                <Link to="/auth" className="btn btn-outline" onClick={() => trackLinkClick('auth_free')}>Скачать бесплатно</Link>
               )}
             </div>
 
@@ -562,9 +569,9 @@ export default function HomePage() {
                 </li>
               </ul>
               {currentUser ? (
-                <Link to="/dashboard" className="btn btn-primary">Купить премиум</Link>
+                <Link to="/dashboard" className="btn btn-primary" onClick={() => trackButtonClick('buy_premium')}>Купить премиум</Link>
               ) : (
-                <Link to="/auth" className="btn btn-primary">Купить премиум</Link>
+                <Link to="/auth" className="btn btn-primary" onClick={() => trackLinkClick('auth_premium')}>Купить премиум</Link>
               )}
             </div>
 
@@ -593,9 +600,9 @@ export default function HomePage() {
                 </li>
               </ul>
               {currentUser ? (
-                <Link to="/dashboard" className="btn btn-gradient">Купить альфа</Link>
+                <Link to="/dashboard" className="btn btn-gradient" onClick={() => trackButtonClick('buy_alpha')}>Купить альфа</Link>
               ) : (
-                <Link to="/auth" className="btn btn-gradient">Купить альфа</Link>
+                <Link to="/auth" className="btn btn-gradient" onClick={() => trackLinkClick('auth_alpha')}>Купить альфа</Link>
               )}
             </div>
           </div>

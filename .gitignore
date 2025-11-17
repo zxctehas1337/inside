@@ -51,3 +51,7 @@ server/updates/*.exe
 server/updates/*.yml
 !server/updates/.gitkeep
 !server/updates/README.md
+
+# Dropbox credentials
+Launcher/.env.dropbox
+Launcher/dropbox-links.json

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import AnimatedBackground from '../components/AnimatedBackground'
 import Notification from '../components/Notification'
 import { setCurrentUser } from '../utils/database'
+import { initAnalytics, trackPageView, trackButtonClick } from '../utils/analytics'
 import { NotificationType } from '../types'
 import '../styles/AuthPage.css'
 
@@ -13,6 +14,12 @@ export default function AuthPage() {
   const [adminEmail, setAdminEmail] = useState('')
   const [adminPassword, setAdminPassword] = useState('')
   const navigate = useNavigate()
+
+  // Инициализация аналитики
+  React.useEffect(() => {
+    initAnalytics()
+    trackPageView('/auth')
+  }, [])
 
   // Проверяем URL параметры для Google OAuth callback
   React.useEffect(() => {
@@ -119,7 +126,10 @@ export default function AuthPage() {
                 </div>
 
                 <button 
-                  onClick={() => setIsAdminMode(true)}
+                  onClick={() => {
+                    setIsAdminMode(true)
+                    trackButtonClick('admin_mode')
+                  }}
                   className="btn btn-admin btn-full"
                 >
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">

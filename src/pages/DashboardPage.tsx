@@ -5,6 +5,7 @@ import Notification from '../components/Notification'
 import { LogoutModal } from '../components/LogoutModal'
 import { DeleteAccountModal } from '../components/DeleteAccountModal'
 import { getCurrentUser, setCurrentUser, Database } from '../utils/database'
+import { initAnalytics, trackPageView, trackButtonClick } from '../utils/analytics'
 import { User, NotificationType } from '../types'
 import { DOWNLOAD_LINKS } from '../utils/constants'
 import '../styles/DashboardPage.css'
@@ -19,6 +20,14 @@ export default function DashboardPage() {
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const currentUser = getCurrentUser()
+    if (currentUser) {
+      initAnalytics(currentUser.id)
+      trackPageView('/dashboard')
+    }
+  }, [])
 
   useEffect(() => {
     // Проверяем URL параметры для Google OAuth callback

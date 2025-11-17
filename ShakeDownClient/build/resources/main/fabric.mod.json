@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "arizon-client",
+  "version": "1.0.0",
+  "name": "Arizon Client",
+  "description": "Custom Minecraft Client with Modern GUI",
+  "authors": [
+    "Arizon Team"
+  ],
+  "contact": {
+    "homepage": "https://github.com/arizon/arizon-client",
+    "sources": "https://github.com/arizon/arizon-client"
+  },
+  "license": "MIT",
+  "icon": "assets/arizon-client/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.arizon.client.ArizonClientMod"
+    ]
+  },
+  "mixins": [
+    "arizon-client.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "~1.20.1",
+    "java": ">=17",
+    "fabric-api": "*"
+  }
+}

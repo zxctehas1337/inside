@@ -1,0 +1,29 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.arizon.client.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+  ],
+  "client": [
+    "MinecraftClientMixin",
+    "ChatScreenMixin",
+    "KeyboardMixin",
+    "ScreenMixin",
+    "HeldItemRendererMixin",
+    "WorldRenderContextMixin",
+    "ChamsMixin",
+    "optimization.WorldRendererMixin",
+    "optimization.ParticleManagerMixin",
+    "optimization.EntityRenderDispatcherMixin",
+    "optimization.MathHelperMixin",
+    "removals.BackgroundRendererMixin",
+    "removals.InGameOverlayRendererMixin",
+    "removals.GameRendererMixin",
+    "removals.InGameHudMixin",
+    "removals.CameraSubmersionTypeMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

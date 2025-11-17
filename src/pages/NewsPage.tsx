@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { NewsPost } from '../types'
 import AnimatedBackground from '../components/AnimatedBackground'
 import { getCurrentUser } from '../utils/database'
+import { initAnalytics, trackPageView } from '../utils/analytics'
 import '../styles/NewsPage.css'
 
 export default function NewsPage() {
@@ -11,6 +12,8 @@ export default function NewsPage() {
   const currentUser = getCurrentUser()
 
   useEffect(() => {
+    initAnalytics(currentUser?.id)
+    trackPageView('/news')
     loadNews()
   }, [])
 

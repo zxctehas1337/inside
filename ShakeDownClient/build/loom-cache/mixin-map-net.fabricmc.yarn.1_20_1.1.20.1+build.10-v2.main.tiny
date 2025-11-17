@@ -1,0 +1,2 @@
+v1	named	intermediary
+FIELD	com/arizon/client/mixin/optimization/ParticleManagerMixin	Ljava/util/Queue;	newParticles	field_3836

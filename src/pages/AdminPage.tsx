@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { User, NewsPost } from '../types'
 import Notification from '../components/Notification'
 import { LogoutModal } from '../components/LogoutModal'
+import AnalyticsPanel from '../components/AnalyticsPanel'
 import { getCurrentUser, setCurrentUser } from '../utils/database'
 import * as api from '../utils/api'
 import '../styles/AdminPage.css'
 
 export default function AdminPage() {
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<'overview' | 'news' | 'users' | 'activity'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'news' | 'users' | 'analytics' | 'client'>('overview')
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   
@@ -17,9 +18,14 @@ export default function AdminPage() {
   const [news, setNews] = useState<NewsPost[]>([])
   const [newPost, setNewPost] = useState({ title: '', content: '', type: 'website' as 'launcher' | 'website' })
   
-  // Users state1111
+  // Users state
   const [users, setUsers] = useState<User[]>([])
   const [searchQuery, setSearchQuery] = useState('')
+  
+  // Client version state
+  const [clientVersion, setClientVersion] = useState({ version: '', downloadUrl: '', changelog: '' })
+  const [currentVersion, setCurrentVersion] = useState<any>(null)
+  const [versionHistory, setVersionHistory] = useState<any[]>([])
 
   useEffect(() => {
     // Проверка прав администратора
@@ -32,6 +38,8 @@ export default function AdminPage() {
     // Загрузка данных
     loadNews()
     loadUsers()
+    loadClientVersion()
+    loadVersionHistory()
 
     // Автоматическое обновление данных каждые 30 секунд
     const intervalId = setInterval(() => {
@@ -70,6 +78,34 @@ export default function AdminPage() {
       console.error('Failed to load users from API:', error)
     }
     setUsers([])
+  }
+
+  const loadClientVersion = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/client/version`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.data) {
+          setCurrentVersion(data.data)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load client version:', error)
+    }
+  }
+
+  const loadVersionHistory = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/client/versions`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.data) {
+          setVersionHistory(data.data)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load version history:', error)
+    }
   }
 
   const handleCreatePost = async () => {
@@ -226,6 +262,44 @@ export default function AdminPage() {
     setNotification({ message: 'Ошибка при удалении пользователя', type: 'error' })
   }
 
+  const handleUploadClientVersion = async () => {
+    if (!clientVersion.version || !clientVersion.downloadUrl) {
+      setNotification({ message: 'Заполните версию и ссылку для скачивания', type: 'error' })
+      return
+    }
+
+    const currentUser = getCurrentUser()
+    if (!currentUser) return
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/client/version`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          version: clientVersion.version,
+          downloadUrl: clientVersion.downloadUrl,
+          changelog: clientVersion.changelog,
+          userId: currentUser.id
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          await loadClientVersion()
+          await loadVersionHistory()
+          setClientVersion({ version: '', downloadUrl: '', changelog: '' })
+          setNotification({ message: `Версия ${clientVersion.version} загружена!`, type: 'success' })
+          return
+        }
+      }
+    } catch (error) {
+      console.error('Failed to upload client version:', error)
+    }
+
+    setNotification({ message: 'Ошибка при загрузке версии', type: 'error' })
+  }
+
   const handleLogout = () => {
     setCurrentUser(null)
     navigate('/')
@@ -316,13 +390,25 @@ export default function AdminPage() {
           </button>
 
           <button 
-            className={`admin-nav-item ${activeTab === 'activity' ? 'active' : ''}`}
-            onClick={() => setActiveTab('activity')}
+            className={`admin-nav-item ${activeTab === 'analytics' ? 'active' : ''}`}
+            onClick={() => setActiveTab('analytics')}
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
               <path d="M2 10H6L8 4L12 16L14 10H18" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span>Активность</span>
+          </button>
+
+          <button 
+            className={`admin-nav-item ${activeTab === 'client' ? 'active' : ''}`}
+            onClick={() => setActiveTab('client')}
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10 2L2 7L12 12L22 7L12 2Z" fill="currentColor"/>
+              <path d="M2 17L12 22L22 17V7L12 12L2 7V17Z" fill="currentColor"/>
+            </svg>
+            <span>Версии чита</span>
+            {currentVersion && <span className="badge-version">{currentVersion.version}</span>}
           </button>
         </nav>
 
@@ -531,90 +617,116 @@ export default function AdminPage() {
           </div>
         )}
 
-        {activeTab === 'activity' && (
+        {activeTab === 'analytics' && (
           <div className="admin-section">
             <div className="section-header">
-              <h2>Активность пользователей</h2>
-              <p>Статистика посещений и активности</p>
+              <h2>Аналитика сайта</h2>
+              <p>Реальная статистика посещений и активности пользователей</p>
             </div>
 
-            <div className="activity-stats">
-              <div className="activity-chart-card">
-                <h3>Посещения за последние 7 дней</h3>
-                <div className="chart-placeholder">
-                  <div className="chart-bars">
-                    {[65, 45, 80, 55, 90, 70, 85].map((height, i) => (
-                      <div key={i} className="chart-bar">
-                        <div className="bar-fill" style={{ height: `${height}%` }}></div>
-                        <div className="bar-label">{['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'][i]}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+            <AnalyticsPanel />
+          </div>
+        )}
 
-              <div className="activity-info-grid">
-                <div className="info-card">
-                  <div className="info-icon">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2ZM10 5C10.5523 5 11 5.44772 11 6V10C11 10.5523 10.5523 11 10 11C9.44772 11 9 10.5523 9 10V6C9 5.44772 9.44772 5 10 5ZM10 15C9.44772 15 9 14.5523 9 14C9 13.4477 9.44772 13 10 13C10.5523 13 11 13.4477 11 14C11 14.5523 10.5523 15 10 15Z"/>
-                    </svg>
-                  </div>
-                  <div className="info-content">
-                    <div className="info-value">1,234</div>
-                    <div className="info-label">Всего посещений</div>
-                  </div>
-                </div>
-
-                <div className="info-card">
-                  <div className="info-icon">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                      <circle cx="10" cy="10" r="8"/>
-                    </svg>
-                  </div>
-                  <div className="info-content">
-                    <div className="info-value">{users.filter(u => !u.isBanned).length}</div>
-                    <div className="info-label">Активных сегодня</div>
-                  </div>
-                </div>
-
-                <div className="info-card">
-                  <div className="info-icon">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M10 2L12.5 7L18 8L14 12L15 18L10 15L5 18L6 12L2 8L7.5 7L10 2Z"/>
-                    </svg>
-                  </div>
-                  <div className="info-content">
-                    <div className="info-value">87%</div>
-                    <div className="info-label">Уровень вовлеченности</div>
-                  </div>
-                </div>
-              </div>
+        {activeTab === 'client' && (
+          <div className="admin-section">
+            <div className="section-header">
+              <h2>Управление версиями чита</h2>
+              <p>Загрузка новых версий для автоматического обновления в лаунчере</p>
             </div>
 
-            <div className="recent-users">
-              <h3>Недавно зарегистрированные</h3>
-              <div className="users-list">
-                {users.slice(0, 10).map(user => (
-                  <div key={user.id} className="user-item">
-                    {user.avatar ? (
-                      <img src={user.avatar} alt={user.username} className="user-avatar-small" />
-                    ) : (
-                      <div className="user-avatar-placeholder-small">
-                        {user.username[0].toUpperCase()}
+            {/* Current Version */}
+            {currentVersion && (
+              <div className="current-version-card">
+                <div className="version-header">
+                  <div>
+                    <h3>Текущая версия</h3>
+                    <div className="version-number">{currentVersion.version}</div>
+                  </div>
+                  <div className="version-badge active">Активна</div>
+                </div>
+                {currentVersion.changelog && (
+                  <div className="version-changelog">
+                    <strong>Изменения:</strong>
+                    <p>{currentVersion.changelog}</p>
+                  </div>
+                )}
+                <div className="version-meta">
+                  <span>Загружено: {new Date(currentVersion.uploadedAt).toLocaleString('ru-RU')}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Upload New Version */}
+            <div className="create-post-card">
+              <h3>Загрузить новую версию</h3>
+              <div className="form-group">
+                <label>Версия</label>
+                <input
+                  type="text"
+                  placeholder="Например: 1.0.1"
+                  value={clientVersion.version}
+                  onChange={(e) => setClientVersion({ ...clientVersion, version: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>Ссылка для скачивания</label>
+                <input
+                  type="text"
+                  placeholder="https://example.com/arizon-client-1.0.1.jar"
+                  value={clientVersion.downloadUrl}
+                  onChange={(e) => setClientVersion({ ...clientVersion, downloadUrl: e.target.value })}
+                />
+                <small>Прямая ссылка на .jar файл (Dropbox, Google Drive, GitHub Releases)</small>
+              </div>
+              <div className="form-group">
+                <label>Список изменений (необязательно)</label>
+                <textarea
+                  placeholder="Что нового в этой версии?"
+                  rows={3}
+                  value={clientVersion.changelog}
+                  onChange={(e) => setClientVersion({ ...clientVersion, changelog: e.target.value })}
+                />
+              </div>
+              <button className="btn-primary" onClick={handleUploadClientVersion}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 2V14M10 2L6 6M10 2L14 6" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M4 14V16C4 17.1046 4.89543 18 6 18H14C15.1046 18 16 17.1046 16 16V14" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
+                </svg>
+                Загрузить версию
+              </button>
+            </div>
+
+            {/* Version History */}
+            <div className="news-list">
+              <h3>История версий ({versionHistory.length})</h3>
+              {versionHistory.length === 0 ? (
+                <div className="empty-state">
+                  <p>История версий пуста</p>
+                </div>
+              ) : (
+                versionHistory.map(version => (
+                  <div key={version.id} className="news-card version-card">
+                    <div className="news-card-header">
+                      <div>
+                        <h4>Версия {version.version}</h4>
+                        <div className="news-meta">
+                          {version.isActive && <span className="news-badge launcher">Активна</span>}
+                          <span>{new Date(version.uploadedAt).toLocaleString('ru-RU')}</span>
+                          {version.uploadedBy && <span>Загрузил: {version.uploadedBy}</span>}
+                        </div>
                       </div>
-                    )}
-                    <div className="user-item-info">
-                      <div className="user-item-name">{user.username}</div>
-                      <div className="user-item-date">{new Date(user.registeredAt).toLocaleDateString('ru-RU')}</div>
                     </div>
-                    <span className={`subscription-badge ${user.subscription}`}>
-                      {user.subscription === 'premium' ? 'Premium' : 
-                       user.subscription === 'alpha' ? 'Alpha' : 'Free'}
-                    </span>
+                    {version.changelog && <p>{version.changelog}</p>}
+                    <div className="version-url">
+                      <strong>URL:</strong>
+                      <a href={version.downloadUrl} target="_blank" rel="noopener noreferrer">
+                        {version.downloadUrl}
+                      </a>
+                    </div>
                   </div>
-                ))}
-              </div>
+                ))
+              )}
             </div>
           </div>
         )}

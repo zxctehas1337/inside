@@ -10,6 +10,34 @@ export interface ApiResponse<T> {
 
 // Google OAuth - вход происходит через редирект на /api/auth/google
 
+// Запись события аналитики
+export async function trackEvent(eventType: string, page?: string, data?: any, userId?: number) {
+  try {
+    const response = await fetch(`${API_URL}/api/analytics`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId, eventType, page, data }),
+    })
+    return await response.json()
+  } catch (error) {
+    console.error('Track event error:', error)
+    return { success: false }
+  }
+}
+
+// Получение статистики аналитики
+export async function getAnalyticsStats() {
+  try {
+    const response = await fetch(`${API_URL}/api/analytics/stats`)
+    return await response.json()
+  } catch (error) {
+    console.error('Get analytics stats error:', error)
+    return { success: false, message: 'Ошибка подключения к серверу' }
+  }
+}
+
 // Обновление пользователя
 export async function updateUser(userId: number, updates: any) {
   try {

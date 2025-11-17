@@ -188,6 +188,38 @@ async function initDatabase() {
       )
     `);
     
+    // Создаем таблицу аналитики
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS analytics (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        event_type VARCHAR(100) NOT NULL,
+        page VARCHAR(255),
+        data JSONB,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Создаем индексы для быстрого поиска
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_analytics_user_id ON analytics(user_id);
+      CREATE INDEX IF NOT EXISTS idx_analytics_event_type ON analytics(event_type);
+      CREATE INDEX IF NOT EXISTS idx_analytics_timestamp ON analytics(timestamp);
+    `);
+    
+    // Создаем таблицу версий чита
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS client_versions (
+        id SERIAL PRIMARY KEY,
+        version VARCHAR(50) NOT NULL,
+        download_url TEXT NOT NULL,
+        changelog TEXT,
+        uploaded_by INTEGER REFERENCES users(id),
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        is_active BOOLEAN DEFAULT true
+      )
+    `);
+    
     console.log('✅ База данных инициализирована');
     
     // Автоматическое создание администратора
@@ -724,6 +756,209 @@ app.get('/api/launcher/version', async (req, res) => {
   }
 });
 
+// ============= CLIENT VERSION API =============
+
+// Получение текущей версии чита
+app.get('/api/client/version', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT version, download_url, changelog, uploaded_at FROM client_versions WHERE is_active = true ORDER BY uploaded_at DESC LIMIT 1'
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ 
+        success: false, 
+        message: 'Версия чита не найдена' 
+      });
+    }
+
+    const version = {
+      version: result.rows[0].version,
+      downloadUrl: result.rows[0].download_url,
+      changelog: result.rows[0].changelog,
+      uploadedAt: result.rows[0].uploaded_at
+    };
+
+    res.json({ success: true, data: version });
+  } catch (error) {
+    console.error('❌ Ошибка получения версии чита:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
+  }
+});
+
+// Загрузка новой версии чита (только для админов)
+app.post('/api/client/version', async (req, res) => {
+  const { version, downloadUrl, changelog, userId } = req.body;
+
+  try {
+    // Проверяем, что пользователь - администратор
+    const userCheck = await pool.query(
+      'SELECT is_admin FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (userCheck.rows.length === 0 || !userCheck.rows[0].is_admin) {
+      return res.json({ success: false, message: 'Доступ запрещен' });
+    }
+
+    // Деактивируем предыдущие версии
+    await pool.query('UPDATE client_versions SET is_active = false WHERE is_active = true');
+
+    // Добавляем новую версию
+    const result = await pool.query(
+      'INSERT INTO client_versions (version, download_url, changelog, uploaded_by) VALUES ($1, $2, $3, $4) RETURNING id, version, download_url, changelog, uploaded_at',
+      [version, downloadUrl, changelog, userId]
+    );
+
+    const newVersion = {
+      id: result.rows[0].id,
+      version: result.rows[0].version,
+      downloadUrl: result.rows[0].download_url,
+      changelog: result.rows[0].changelog,
+      uploadedAt: result.rows[0].uploaded_at
+    };
+
+    console.log(`✅ Новая версия чита загружена: ${version} (Admin ID: ${userId})`);
+    res.json({ success: true, data: newVersion });
+  } catch (error) {
+    console.error('❌ Ошибка загрузки версии чита:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
+  }
+});
+
+// Получение истории версий (только для админов)
+app.get('/api/client/versions', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT cv.id, cv.version, cv.download_url, cv.changelog, cv.uploaded_at, cv.is_active, u.username as uploaded_by_name
+       FROM client_versions cv
+       LEFT JOIN users u ON cv.uploaded_by = u.id
+       ORDER BY cv.uploaded_at DESC`
+    );
+
+    const versions = result.rows.map(row => ({
+      id: row.id,
+      version: row.version,
+      downloadUrl: row.download_url,
+      changelog: row.changelog,
+      uploadedAt: row.uploaded_at,
+      isActive: row.is_active,
+      uploadedBy: row.uploaded_by_name
+    }));
+
+    res.json({ success: true, data: versions });
+  } catch (error) {
+    console.error('❌ Ошибка получения истории версий:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
+  }
+});
+
+// ============= ANALYTICS API =============
+
+// Запись события аналитики
+app.post('/api/analytics', async (req, res) => {
+  const { userId, eventType, page, data } = req.body;
+
+  try {
+    const result = await pool.query(
+      'INSERT INTO analytics (user_id, event_type, page, data) VALUES ($1, $2, $3, $4) RETURNING id',
+      [userId || null, eventType, page || null, data ? JSON.stringify(data) : null]
+    );
+
+    res.json({ success: true, id: result.rows[0].id });
+  } catch (error) {
+    console.error('Analytics error:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
+  }
+});
+
+// Получение статистики
+app.get('/api/analytics/stats', async (req, res) => {
+  try {
+    // Общее количество посещений
+    const totalVisits = await pool.query(
+      "SELECT COUNT(*) as count FROM analytics WHERE event_type = 'page_view'"
+    );
+
+    // Уникальные пользователи
+    const uniqueUsers = await pool.query(
+      "SELECT COUNT(DISTINCT user_id) as count FROM analytics WHERE user_id IS NOT NULL"
+    );
+
+    // Посещения за последние 7 дней (по дням)
+    const weeklyVisits = await pool.query(`
+      SELECT 
+        DATE(timestamp) as date,
+        COUNT(*) as visits
+      FROM analytics 
+      WHERE event_type = 'page_view' 
+        AND timestamp >= NOW() - INTERVAL '7 days'
+      GROUP BY DATE(timestamp)
+      ORDER BY date ASC
+    `);
+
+    // Популярные страницы
+    const popularPages = await pool.query(`
+      SELECT 
+        page,
+        COUNT(*) as visits
+      FROM analytics 
+      WHERE event_type = 'page_view' AND page IS NOT NULL
+      GROUP BY page
+      ORDER BY visits DESC
+      LIMIT 10
+    `);
+
+    // События кликов
+    const clickEvents = await pool.query(`
+      SELECT 
+        data->>'element' as element,
+        COUNT(*) as clicks
+      FROM analytics 
+      WHERE event_type = 'click' AND data IS NOT NULL
+      GROUP BY data->>'element'
+      ORDER BY clicks DESC
+      LIMIT 10
+    `);
+
+    // Среднее время на сайте (в секундах)
+    const avgSessionTime = await pool.query(`
+      SELECT 
+        AVG(EXTRACT(EPOCH FROM (MAX(timestamp) - MIN(timestamp)))) as avg_time
+      FROM analytics
+      WHERE user_id IS NOT NULL
+      GROUP BY user_id, DATE(timestamp)
+    `);
+
+    // Активность по часам
+    const hourlyActivity = await pool.query(`
+      SELECT 
+        EXTRACT(HOUR FROM timestamp) as hour,
+        COUNT(*) as activity
+      FROM analytics
+      WHERE timestamp >= NOW() - INTERVAL '24 hours'
+      GROUP BY EXTRACT(HOUR FROM timestamp)
+      ORDER BY hour ASC
+    `);
+
+    res.json({
+      success: true,
+      data: {
+        totalVisits: parseInt(totalVisits.rows[0].count),
+        uniqueUsers: parseInt(uniqueUsers.rows[0].count),
+        weeklyVisits: weeklyVisits.rows,
+        popularPages: popularPages.rows,
+        clickEvents: clickEvents.rows,
+        avgSessionTime: avgSessionTime.rows[0]?.avg_time || 0,
+        hourlyActivity: hourlyActivity.rows
+      }
+    });
+  } catch (error) {
+    console.error('Get analytics stats error:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
+  }
+});
+
 // ============= NEWS API =============
 
 // Получение всех новостей
@@ -819,7 +1054,9 @@ app.listen(PORT, () => {
   console.log('   PATCH /api/users/:id/subscription - Изменение подписки');
   console.log('   GET  /api/news - Список новостей');
   console.log('   POST /api/news - Создание новости');
-  console.log('   DELETE /api/news/:id - Удаление новости\n');
+  console.log('   DELETE /api/news/:id - Удаление новости');
+  console.log('   POST /api/analytics - Запись события аналитики');
+  console.log('   GET  /api/analytics/stats - Получение статистики\n');
   console.log('🔗 Authorized redirect URIs:');
   console.log(`   ${process.env.GOOGLE_CALLBACK_URL || 'https://oneshakedown.onrender.com/api/auth/google/callback'}`);
   console.log('   http://localhost:8080/api/auth/google/callback\n');
