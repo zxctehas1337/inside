@@ -47,13 +47,42 @@ export class Database {
   }
 }
 
-// Хранение текущего пользователя в памяти (session)
-let currentUserSession: User | null = null
+// Хранение текущего пользователя в localStorage с JWT токеном
+const USER_STORAGE_KEY = 'shakedown_user'
+const TOKEN_STORAGE_KEY = 'shakedown_token'
 
 export const getCurrentUser = (): User | null => {
-  return currentUserSession
+  try {
+    const userData = localStorage.getItem(USER_STORAGE_KEY)
+    if (userData) {
+      return JSON.parse(userData)
+    }
+  } catch (error) {
+    console.error('Error reading user from localStorage:', error)
+  }
+  return null
 }
 
 export const setCurrentUser = (user: User | null) => {
-  currentUserSession = user
+  try {
+    if (user) {
+      // Сохраняем токен отдельно
+      if ('token' in user) {
+        localStorage.setItem(TOKEN_STORAGE_KEY, (user as any).token)
+      }
+      // Сохраняем пользователя без токена
+      const userWithoutToken = { ...user }
+      delete (userWithoutToken as any).token
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userWithoutToken))
+    } else {
+      localStorage.removeItem(USER_STORAGE_KEY)
+      localStorage.removeItem(TOKEN_STORAGE_KEY)
+    }
+  } catch (error) {
+    console.error('Error saving user to localStorage:', error)
+  }
+}
+
+export const getAuthToken = (): string | null => {
+  return localStorage.getItem(TOKEN_STORAGE_KEY)
 }

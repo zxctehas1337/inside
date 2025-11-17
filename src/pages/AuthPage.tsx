@@ -21,7 +21,7 @@ export default function AuthPage() {
     trackPageView('/auth')
   }, [])
 
-  // Проверяем URL параметры для Google OAuth callback
+  // Проверяем URL параметры для OAuth callback
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const authStatus = params.get('auth')
@@ -30,7 +30,8 @@ export default function AuthPage() {
     if (authStatus === 'success' && userData) {
       try {
         const user = JSON.parse(decodeURIComponent(userData))
-        setCurrentUser(user)
+        console.log('✅ OAuth успешен, сохраняем пользователя с токеном')
+        setCurrentUser(user) // Токен будет сохранен автоматически
         setNotification({ message: 'Вход выполнен успешно!', type: 'success' })
         
         // Перенаправление
@@ -66,7 +67,8 @@ export default function AuthPage() {
       const result = await response.json()
 
       if (result.success && result.data) {
-        setCurrentUser(result.data)
+        console.log('✅ Вход администратора успешен, сохраняем с токеном')
+        setCurrentUser(result.data) // Токен будет сохранен автоматически
         setNotification({ message: 'Вход администратора выполнен!', type: 'success' })
         setTimeout(() => navigate('/admin'), 1500)
       } else {

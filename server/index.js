@@ -5,11 +5,14 @@ const { Pool } = require('pg');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const YandexStrategy = require('passport-yandex').Strategy;
-const session = require('express-session');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+
+// JWT Secret
+const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'your-jwt-secret-key';
 
 // Подключение к PostgreSQL
 const pool = new Pool({
@@ -28,36 +31,41 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Session middleware для Passport
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000 // 24 часа
-  }
-}));
-
-// Инициализация Passport
+// Инициализация Passport (без сессий)
 app.use(passport.initialize());
-app.use(passport.session());
 
-// Хранилище для кодов авторизации больше не используется - прямой OAuth flow
+// Функция для генерации JWT токена
+function generateToken(user) {
+  return jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      subscription: user.subscription,
+      isAdmin: user.is_admin
+    },
+    JWT_SECRET,
+    { expiresIn: '50d' } // Токен действителен 30 дней
+  );
+}
 
-// Сериализация пользователя для сессии
-passport.serializeUser((user, done) => {
-  done(null, user.id);
-});
+// Middleware для проверки JWT токена
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
 
-passport.deserializeUser(async (id, done) => {
-  try {
-    const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
-    done(null, result.rows[0]);
-  } catch (error) {
-    done(error, null);
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Токен не предоставлен' });
   }
-});
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ success: false, message: 'Недействительный токен' });
+    }
+    req.user = user;
+    next();
+  });
+}
 
 // Google OAuth Strategy
 passport.use(new GoogleStrategy({
@@ -67,18 +75,14 @@ passport.use(new GoogleStrategy({
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
-      // Получаем аватарку из Google профиля
       const googleAvatar = profile.photos && profile.photos.length > 0 ? profile.photos[0].value : null;
       
-      // Проверяем, существует ли пользователь с таким Google ID
       let result = await pool.query(
         'SELECT * FROM users WHERE google_id = $1',
         [profile.id]
       );
 
       if (result.rows.length > 0) {
-        // НЕ обновляем аватарку, если у пользователя уже есть custom_avatar
-        // Только обновляем google_avatar для возможности восстановления
         const user = result.rows[0];
         const updateResult = await pool.query(
           'UPDATE users SET google_avatar = $1 WHERE google_id = $2 RETURNING *',
@@ -87,15 +91,12 @@ passport.use(new GoogleStrategy({
         return done(null, updateResult.rows[0]);
       }
 
-      // Проверяем, существует ли пользователь с таким email
       result = await pool.query(
         'SELECT * FROM users WHERE email = $1',
         [profile.emails[0].value]
       );
 
       if (result.rows.length > 0) {
-        // Обновляем существующего пользователя, добавляя Google ID
-        // Устанавливаем avatar только если у пользователя нет custom_avatar
         const user = result.rows[0];
         const avatarToSet = user.custom_avatar ? user.custom_avatar : googleAvatar;
         const updateResult = await pool.query(
@@ -105,10 +106,8 @@ passport.use(new GoogleStrategy({
         return done(null, updateResult.rows[0]);
       }
 
-      // Создаем нового пользователя
       const username = profile.emails[0].value.split('@')[0] + '_' + Math.floor(Math.random() * 1000);
       
-      // Сначала создаем пользователя без UID
       const newUserResult = await pool.query(
         `INSERT INTO users (username, email, password, google_id, email_verified, subscription, avatar, google_avatar) 
          VALUES ($1, $2, $3, $4, true, 'free', $5, $6) 
@@ -116,11 +115,9 @@ passport.use(new GoogleStrategy({
         [username, profile.emails[0].value, '', profile.id, googleAvatar, googleAvatar]
       );
       
-      // Генерируем UID на основе года регистрации и ID
       const year = new Date(newUserResult.rows[0].registered_at).getFullYear();
       const uid = `AZ-${year}-${String(newUserResult.rows[0].id).padStart(3, '0')}`;
       
-      // Обновляем пользователя с UID
       const updatedUserResult = await pool.query(
         'UPDATE users SET uid = $1 WHERE id = $2 RETURNING *',
         [uid, newUserResult.rows[0].id]
@@ -141,7 +138,6 @@ passport.use(new YandexStrategy({
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
-      // Получаем аватарку из Yandex профиля
       const yandexAvatar = profile.photos && profile.photos.length > 0 ? profile.photos[0].value : null;
       const email = profile.emails && profile.emails.length > 0 ? profile.emails[0].value : null;
       
@@ -149,14 +145,12 @@ passport.use(new YandexStrategy({
         return done(new Error('Email не предоставлен Yandex'), null);
       }
       
-      // Проверяем, существует ли пользователь с таким Yandex ID
       let result = await pool.query(
         'SELECT * FROM users WHERE yandex_id = $1',
         [profile.id]
       );
 
       if (result.rows.length > 0) {
-        // Обновляем yandex_avatar для возможности восстановления
         const user = result.rows[0];
         const updateResult = await pool.query(
           'UPDATE users SET yandex_avatar = $1 WHERE yandex_id = $2 RETURNING *',
@@ -165,14 +159,12 @@ passport.use(new YandexStrategy({
         return done(null, updateResult.rows[0]);
       }
 
-      // Проверяем, существует ли пользователь с таким email
       result = await pool.query(
         'SELECT * FROM users WHERE email = $1',
         [email]
       );
 
       if (result.rows.length > 0) {
-        // Обновляем существующего пользователя, добавляя Yandex ID
         const user = result.rows[0];
         const avatarToSet = user.custom_avatar ? user.custom_avatar : (yandexAvatar || user.avatar);
         const updateResult = await pool.query(
@@ -182,10 +174,8 @@ passport.use(new YandexStrategy({
         return done(null, updateResult.rows[0]);
       }
 
-      // Создаем нового пользователя
       const username = (profile.displayName || email.split('@')[0]) + '_' + Math.floor(Math.random() * 1000);
       
-      // Сначала создаем пользователя без UID
       const newUserResult = await pool.query(
         `INSERT INTO users (username, email, password, yandex_id, email_verified, subscription, avatar, yandex_avatar) 
          VALUES ($1, $2, $3, $4, true, 'free', $5, $6) 
@@ -193,11 +183,9 @@ passport.use(new YandexStrategy({
         [username, email, '', profile.id, yandexAvatar, yandexAvatar]
       );
       
-      // Генерируем UID на основе года регистрации и ID
       const year = new Date(newUserResult.rows[0].registered_at).getFullYear();
       const uid = `AZ-${year}-${String(newUserResult.rows[0].id).padStart(3, '0')}`;
       
-      // Обновляем пользователя с UID
       const updatedUserResult = await pool.query(
         'UPDATE users SET uid = $1 WHERE id = $2 RETURNING *',
         [uid, newUserResult.rows[0].id]
@@ -238,7 +226,6 @@ async function initDatabase() {
       )
     `);
     
-    // Добавляем колонки для существующих таблиц
     await pool.query(`
       ALTER TABLE users 
       ADD COLUMN IF NOT EXISTS google_id VARCHAR(255) UNIQUE,
@@ -251,14 +238,12 @@ async function initDatabase() {
       ADD COLUMN IF NOT EXISTS uid VARCHAR(50) UNIQUE
     `);
     
-    // Генерируем UID для существующих пользователей без UID
     await pool.query(`
       UPDATE users 
       SET uid = 'AZ-' || TO_CHAR(registered_at, 'YYYY') || '-' || LPAD(id::text, 3, '0')
       WHERE uid IS NULL
     `);
     
-    // Создаем таблицу новостей
     await pool.query(`
       CREATE TABLE IF NOT EXISTS news (
         id SERIAL PRIMARY KEY,
@@ -270,7 +255,6 @@ async function initDatabase() {
       )
     `);
     
-    // Создаем таблицу аналитики
     await pool.query(`
       CREATE TABLE IF NOT EXISTS analytics (
         id SERIAL PRIMARY KEY,
@@ -282,14 +266,12 @@ async function initDatabase() {
       )
     `);
     
-    // Создаем индексы для быстрого поиска
     await pool.query(`
       CREATE INDEX IF NOT EXISTS idx_analytics_user_id ON analytics(user_id);
       CREATE INDEX IF NOT EXISTS idx_analytics_event_type ON analytics(event_type);
       CREATE INDEX IF NOT EXISTS idx_analytics_timestamp ON analytics(timestamp);
     `);
     
-    // Создаем таблицу версий чита
     await pool.query(`
       CREATE TABLE IF NOT EXISTS client_versions (
         id SERIAL PRIMARY KEY,
@@ -303,15 +285,12 @@ async function initDatabase() {
     `);
     
     console.log('✅ База данных инициализирована');
-    
-    // Автоматическое создание администратора
     await createDefaultAdmin();
   } catch (error) {
     console.error('❌ Ошибка инициализации БД:', error);
   }
 }
 
-// Автоматическое создание администратора при запуске
 async function createDefaultAdmin() {
   try {
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@shakedown.com';
@@ -321,9 +300,7 @@ async function createDefaultAdmin() {
     console.log('🔧 Настройка администратора...');
     console.log(`   Email: ${adminEmail}`);
     console.log(`   Username: ${adminUsername}`);
-    console.log(`   Password: ${adminPassword}`);
 
-    // Проверяем, существует ли уже администратор по email или username
     const checkResult = await pool.query(
       'SELECT id, username, email, password, is_admin FROM users WHERE email = $1 OR username = $2',
       [adminEmail, adminUsername]
@@ -332,29 +309,22 @@ async function createDefaultAdmin() {
     if (checkResult.rows.length > 0) {
       const existingUser = checkResult.rows[0];
       console.log(`📝 Найден существующий пользователь: ${existingUser.username} (ID: ${existingUser.id})`);
-      console.log(`   Текущий пароль: ${existingUser.password || 'не установлен'}`);
-      console.log(`   Администратор: ${existingUser.is_admin ? 'да' : 'нет'}`);
       
-      // Обновляем существующего пользователя, делая его администратором
       const updateResult = await pool.query(
-        'UPDATE users SET is_admin = true, password = $1, email_verified = true WHERE email = $2 OR username = $3 RETURNING id, username, email, password, is_admin',
+        'UPDATE users SET is_admin = true, password = $1, email_verified = true WHERE email = $2 OR username = $3 RETURNING id, username, email',
         [adminPassword, adminEmail, adminUsername]
       );
       
       console.log('✅ Администратор обновлен:', updateResult.rows[0].email);
-      console.log(`   Новый пароль: ${updateResult.rows[0].password}`);
     } else {
-      // Создаем нового администратора
       const insertResult = await pool.query(
         `INSERT INTO users (username, email, password, is_admin, email_verified, subscription) 
          VALUES ($1, $2, $3, true, true, 'premium')
-         RETURNING id, username, email, password, is_admin`,
+         RETURNING id, username, email`,
         [adminUsername, adminEmail, adminPassword]
       );
       
       console.log('✅ Администратор создан:', insertResult.rows[0].email);
-      console.log(`   ID: ${insertResult.rows[0].id}`);
-      console.log(`   Пароль: ${insertResult.rows[0].password}`);
     }
 
     console.log('\n📋 Данные для входа администратора:');
@@ -372,44 +342,37 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Тестовый endpoint удален - используется прямой OAuth flow
-
 // ============= GOOGLE OAUTH ENDPOINTS =============
 
-// Инициация Google OAuth
 app.get('/api/auth/google', (req, res, next) => {
-  // Передаем redirect параметр через state для надежности
   const redirectUrl = req.query.redirect || 'web';
   console.log(`🔗 Redirect URL: ${redirectUrl}`);
   
   passport.authenticate('google', { 
     scope: ['profile', 'email'],
-    state: redirectUrl
+    state: redirectUrl,
+    session: false
   })(req, res, next);
 });
 
-// Google OAuth callback
 app.get('/api/auth/google/callback',
-  passport.authenticate('google', { failureRedirect: '/auth' }),
+  passport.authenticate('google', { failureRedirect: '/auth', session: false }),
   (req, res) => {
     console.log(`✅ Google OAuth успешен для пользователя: ${req.user.email}`);
-    console.log(`🔍 Все query параметры:`, req.query);
     
-    // Получаем redirect URL из state параметра
     let redirectUrl = req.query.state || 'web';
     
-    // Резервная проверка: если state не передался, но в User-Agent есть признаки лаунчера
     if (redirectUrl === 'web' && req.headers['user-agent']) {
       const userAgent = req.headers['user-agent'].toLowerCase();
       if (userAgent.includes('electron') || userAgent.includes('launcher')) {
         redirectUrl = 'launcher';
-        console.log(`🔄 Обнаружен лаунчер по User-Agent, переключаем на launcher режим`);
+        console.log(`🔄 Обнаружен лаунчер по User-Agent`);
       }
     }
     
-    console.log(`📋 Финальный redirect URL: ${redirectUrl}`);
+    // Генерируем JWT токен
+    const token = generateToken(req.user);
     
-    // Успешная аутентификация
     const user = {
       id: req.user.id,
       username: req.user.username,
@@ -420,21 +383,16 @@ app.get('/api/auth/google/callback',
       isBanned: req.user.is_banned,
       avatar: req.user.avatar,
       uid: req.user.uid,
-      settings: req.user.settings
+      settings: req.user.settings,
+      token: token
     };
     
     if (redirectUrl === 'launcher') {
-      // Для лаунчера - перенаправляем на локальный сервер с данными пользователя
       const userData = encodeURIComponent(JSON.stringify(user));
       const callbackUrl = `http://localhost:3000/callback?user=${userData}`;
-      
       console.log(`🔄 Перенаправление на локальный сервер лаунчера`);
-      console.log(`👤 Пользователь: ${user.email} (ID: ${user.id})`);
-      
-      // Перенаправляем на локальный сервер лаунчера
       res.redirect(callbackUrl);
     } else {
-      // Для веба - перенаправляем на дашборд с данными пользователя
       const userData = encodeURIComponent(JSON.stringify(user));
       console.log(`🌐 Перенаправление на веб-дашборд для пользователя: ${user.email}`);
       res.redirect(`/dashboard?auth=success&user=${userData}`);
@@ -444,39 +402,34 @@ app.get('/api/auth/google/callback',
 
 // ============= YANDEX OAUTH ENDPOINTS =============
 
-// Инициация Yandex OAuth
 app.get('/api/auth/yandex', (req, res, next) => {
-  // Передаем redirect параметр через state для надежности
   const redirectUrl = req.query.redirect || 'web';
   console.log(`🔗 Yandex Redirect URL: ${redirectUrl}`);
   
   passport.authenticate('yandex', { 
-    state: redirectUrl
+    state: redirectUrl,
+    session: false
   })(req, res, next);
 });
 
-// Yandex OAuth callback
 app.get('/api/auth/yandex/callback',
-  passport.authenticate('yandex', { failureRedirect: '/auth' }),
+  passport.authenticate('yandex', { failureRedirect: '/auth', session: false }),
   (req, res) => {
     console.log(`✅ Yandex OAuth успешен для пользователя: ${req.user.email}`);
-    console.log(`🔍 Все query параметры:`, req.query);
     
-    // Получаем redirect URL из state параметра
     let redirectUrl = req.query.state || 'web';
     
-    // Резервная проверка: если state не передался, но в User-Agent есть признаки лаунчера
     if (redirectUrl === 'web' && req.headers['user-agent']) {
       const userAgent = req.headers['user-agent'].toLowerCase();
       if (userAgent.includes('electron') || userAgent.includes('launcher')) {
         redirectUrl = 'launcher';
-        console.log(`🔄 Обнаружен лаунчер по User-Agent, переключаем на launcher режим`);
+        console.log(`🔄 Обнаружен лаунчер по User-Agent`);
       }
     }
     
-    console.log(`📋 Финальный redirect URL: ${redirectUrl}`);
+    // Генерируем JWT токен
+    const token = generateToken(req.user);
     
-    // Успешная аутентификация
     const user = {
       id: req.user.id,
       username: req.user.username,
@@ -487,21 +440,16 @@ app.get('/api/auth/yandex/callback',
       isBanned: req.user.is_banned,
       avatar: req.user.avatar,
       uid: req.user.uid,
-      settings: req.user.settings
+      settings: req.user.settings,
+      token: token
     };
     
     if (redirectUrl === 'launcher') {
-      // Для лаунчера - перенаправляем на локальный сервер с данными пользователя
       const userData = encodeURIComponent(JSON.stringify(user));
       const callbackUrl = `http://localhost:3000/callback?user=${userData}`;
-      
       console.log(`🔄 Перенаправление на локальный сервер лаунчера`);
-      console.log(`👤 Пользователь: ${user.email} (ID: ${user.id})`);
-      
-      // Перенаправляем на локальный сервер лаунчера
       res.redirect(callbackUrl);
     } else {
-      // Для веба - перенаправляем на дашборд с данными пользователя
       const userData = encodeURIComponent(JSON.stringify(user));
       console.log(`🌐 Перенаправление на веб-дашборд для пользователя: ${user.email}`);
       res.redirect(`/dashboard?auth=success&user=${userData}`);
@@ -516,7 +464,6 @@ app.post('/api/auth/admin', async (req, res) => {
   console.log(`🔐 Попытка входа администратора: email=${email}`);
 
   try {
-    // Получаем пользователя с паролем в одном запросе
     const result = await pool.query(
       'SELECT id, username, email, password, subscription, registered_at, is_admin, is_banned, avatar, uid, settings FROM users WHERE email = $1 AND is_admin = true',
       [email]
@@ -528,22 +475,16 @@ app.post('/api/auth/admin', async (req, res) => {
     }
 
     const dbUser = result.rows[0];
-    console.log(`✅ Администратор найден: ${dbUser.username} (ID: ${dbUser.id})`);
-    console.log(`🔑 Пароль в БД: ${dbUser.password ? 'установлен' : 'не установлен'}`);
-    console.log(`🔑 Введенный пароль: ${password}`);
 
-    // Проверяем пароль
-    if (!dbUser.password) {
-      console.log(`❌ У администратора не установлен пароль`);
-      return res.json({ success: false, message: 'Пароль не установлен' });
-    }
-
-    if (dbUser.password !== password) {
+    if (!dbUser.password || dbUser.password !== password) {
       console.log(`❌ Неверный пароль для ${email}`);
       return res.json({ success: false, message: 'Неверный пароль' });
     }
 
     console.log(`✅ Вход администратора успешен: ${dbUser.email}`);
+
+    // Генерируем JWT токен
+    const token = generateToken(dbUser);
 
     const user = {
       id: dbUser.id,
@@ -555,7 +496,8 @@ app.post('/api/auth/admin', async (req, res) => {
       isBanned: dbUser.is_banned,
       avatar: dbUser.avatar,
       uid: dbUser.uid,
-      settings: dbUser.settings
+      settings: dbUser.settings,
+      token: token
     };
 
     res.json({ success: true, data: user });
@@ -565,16 +507,9 @@ app.post('/api/auth/admin', async (req, res) => {
   }
 });
 
-// Endpoint для проверки кода удален - используется прямой OAuth flow
-
-// Выход из системы
+// Выход из системы (теперь просто информационный endpoint)
 app.get('/api/auth/logout', (req, res) => {
-  req.logout((err) => {
-    if (err) {
-      return res.json({ success: false, message: 'Ошибка при выходе' });
-    }
-    res.json({ success: true, message: 'Выход выполнен' });
-  });
+  res.json({ success: true, message: 'Выход выполнен' });
 });
 
 // Обновление пользователя
@@ -709,7 +644,6 @@ app.patch('/api/users/:id/subscription', async (req, res) => {
   const userId = parseInt(id, 10);
   const { subscription } = req.body;
 
-  // Проверка валидности подписки
   const validSubscriptions = ['free', 'premium', 'alpha'];
   if (!validSubscriptions.includes(subscription)) {
     return res.json({ success: false, message: 'Неверный тип подписки' });
@@ -755,7 +689,6 @@ app.delete('/api/users/:id', async (req, res) => {
   const userId = parseInt(id, 10);
 
   try {
-    // Проверяем существование пользователя
     const checkUser = await pool.query(
       'SELECT id, username, email, google_id FROM users WHERE id = $1',
       [userId]
@@ -766,9 +699,8 @@ app.delete('/api/users/:id', async (req, res) => {
     }
 
     const user = checkUser.rows[0];
-    console.log(`🗑️  Удаление пользователя: ID=${userId}, Username=${user.username}, Email=${user.email}, Google ID=${user.google_id || 'нет'}`);
+    console.log(`🗑️  Удаление пользователя: ID=${userId}, Username=${user.username}, Email=${user.email}`);
 
-    // Удаляем пользователя (независимо от того, через Google он зарегистрирован или нет)
     const result = await pool.query(
       'DELETE FROM users WHERE id = $1 RETURNING id, username, email',
       [userId]
@@ -788,7 +720,6 @@ app.delete('/api/users/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Delete user error:', error.message);
-    console.error('❌ Full error:', error);
     res.status(500).json({ success: false, message: 'Ошибка сервера: ' + error.message });
   }
 });
@@ -797,10 +728,9 @@ app.delete('/api/users/:id', async (req, res) => {
 app.post('/api/users/:id/avatar', async (req, res) => {
   const { id } = req.params;
   const userId = parseInt(id, 10);
-  const { avatar } = req.body; // base64 строка
+  const { avatar } = req.body;
 
   try {
-    // Обновляем custom_avatar и avatar
     const result = await pool.query(
       `UPDATE users SET custom_avatar = $1, avatar = $1 
        WHERE id = $2 
@@ -836,15 +766,14 @@ app.post('/api/users/:id/avatar', async (req, res) => {
   }
 });
 
-// Удаление пользовательской аватарки (восстановление Google аватарки)
+// Удаление пользовательской аватарки
 app.delete('/api/users/:id/avatar', async (req, res) => {
   const { id } = req.params;
   const userId = parseInt(id, 10);
 
   try {
-    // Удаляем custom_avatar и восстанавливаем google_avatar
     const result = await pool.query(
-      `UPDATE users SET custom_avatar = NULL, avatar = COALESCE(google_avatar, NULL) 
+      `UPDATE users SET custom_avatar = NULL, avatar = COALESCE(google_avatar, yandex_avatar, NULL) 
        WHERE id = $1 
        RETURNING id, username, email, subscription, registered_at, is_admin, is_banned, avatar, google_avatar, custom_avatar, uid, settings`,
       [userId]
@@ -870,7 +799,7 @@ app.delete('/api/users/:id/avatar', async (req, res) => {
       settings: dbUser.settings
     };
 
-    console.log(`✅ Пользовательская аватарка удалена для: ${dbUser.username} (ID: ${dbUser.id})`);
+    console.log(`✅ Аватарка удалена для пользователя: ${dbUser.username} (ID: ${dbUser.id})`);
     res.json({ success: true, data: user });
   } catch (error) {
     console.error('❌ Delete avatar error:', error);
@@ -880,20 +809,15 @@ app.delete('/api/users/:id/avatar', async (req, res) => {
 
 // ============= LAUNCHER UPDATES API =============
 
-// Раздача обновлений для лаунчера
 app.use('/updates', express.static(path.join(__dirname, 'updates')));
 
-// Информация о последней версии (для проверки обновлений)
 app.get('/api/launcher/version', async (req, res) => {
   try {
     const fs = require('fs');
     const ymlPath = path.join(__dirname, 'updates', 'latest.yml');
     
     if (!fs.existsSync(ymlPath)) {
-      return res.json({ 
-        success: false, 
-        message: 'Файл обновления не найден' 
-      });
+      return res.json({ success: false, message: 'Файл обновления не найден' });
     }
     
     const ymlContent = fs.readFileSync(ymlPath, 'utf8');
@@ -907,7 +831,6 @@ app.get('/api/launcher/version', async (req, res) => {
 
 // ============= CLIENT VERSION API =============
 
-// Получение текущей версии чита
 app.get('/api/client/version', async (req, res) => {
   try {
     const result = await pool.query(
@@ -915,10 +838,7 @@ app.get('/api/client/version', async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.json({ 
-        success: false, 
-        message: 'Версия чита не найдена' 
-      });
+      return res.json({ success: false, message: 'Версия чита не найдена' });
     }
 
     const version = {
@@ -935,12 +855,10 @@ app.get('/api/client/version', async (req, res) => {
   }
 });
 
-// Загрузка новой версии чита (только для админов)
 app.post('/api/client/version', async (req, res) => {
   const { version, downloadUrl, changelog, userId } = req.body;
 
   try {
-    // Проверяем, что пользователь - администратор
     const userCheck = await pool.query(
       'SELECT is_admin FROM users WHERE id = $1',
       [userId]
@@ -950,10 +868,8 @@ app.post('/api/client/version', async (req, res) => {
       return res.json({ success: false, message: 'Доступ запрещен' });
     }
 
-    // Деактивируем предыдущие версии
     await pool.query('UPDATE client_versions SET is_active = false WHERE is_active = true');
 
-    // Добавляем новую версию
     const result = await pool.query(
       'INSERT INTO client_versions (version, download_url, changelog, uploaded_by) VALUES ($1, $2, $3, $4) RETURNING id, version, download_url, changelog, uploaded_at',
       [version, downloadUrl, changelog, userId]
@@ -975,7 +891,6 @@ app.post('/api/client/version', async (req, res) => {
   }
 });
 
-// Получение истории версий (только для админов)
 app.get('/api/client/versions', async (req, res) => {
   try {
     const result = await pool.query(
@@ -1004,7 +919,6 @@ app.get('/api/client/versions', async (req, res) => {
 
 // ============= ANALYTICS API =============
 
-// Запись события аналитики
 app.post('/api/analytics', async (req, res) => {
   const { userId, eventType, page, data } = req.body;
 
@@ -1021,20 +935,16 @@ app.post('/api/analytics', async (req, res) => {
   }
 });
 
-// Получение статистики
 app.get('/api/analytics/stats', async (req, res) => {
   try {
-    // Общее количество посещений
     const totalVisits = await pool.query(
       "SELECT COUNT(*) as count FROM analytics WHERE event_type = 'page_view'"
     );
 
-    // Уникальные пользователи
     const uniqueUsers = await pool.query(
       "SELECT COUNT(DISTINCT user_id) as count FROM analytics WHERE user_id IS NOT NULL"
     );
 
-    // Посещения за последние 7 дней (по дням)
     const weeklyVisits = await pool.query(`
       SELECT 
         DATE(timestamp) as date,
@@ -1046,7 +956,6 @@ app.get('/api/analytics/stats', async (req, res) => {
       ORDER BY date ASC
     `);
 
-    // Популярные страницы
     const popularPages = await pool.query(`
       SELECT 
         page,
@@ -1058,7 +967,6 @@ app.get('/api/analytics/stats', async (req, res) => {
       LIMIT 10
     `);
 
-    // События кликов
     const clickEvents = await pool.query(`
       SELECT 
         data->>'element' as element,
@@ -1070,7 +978,6 @@ app.get('/api/analytics/stats', async (req, res) => {
       LIMIT 10
     `);
 
-    // Среднее время на сайте (в секундах)
     const avgSessionTime = await pool.query(`
       SELECT 
         AVG(EXTRACT(EPOCH FROM (MAX(timestamp) - MIN(timestamp)))) as avg_time
@@ -1079,7 +986,6 @@ app.get('/api/analytics/stats', async (req, res) => {
       GROUP BY user_id, DATE(timestamp)
     `);
 
-    // Активность по часам
     const hourlyActivity = await pool.query(`
       SELECT 
         EXTRACT(HOUR FROM timestamp) as hour,
@@ -1103,27 +1009,26 @@ app.get('/api/analytics/stats', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get analytics stats error:', error);
+    console.error('Analytics stats error:', error);
     res.status(500).json({ success: false, message: 'Ошибка сервера' });
   }
 });
 
 // ============= NEWS API =============
 
-// Получение всех новостей
 app.get('/api/news', async (req, res) => {
   try {
     const result = await pool.query(
       'SELECT id, title, content, author, type, date FROM news ORDER BY date DESC'
     );
 
-    const news = result.rows.map(item => ({
-      id: item.id,
-      title: item.title,
-      content: item.content,
-      author: item.author,
-      type: item.type,
-      date: item.date
+    const news = result.rows.map(row => ({
+      id: row.id,
+      title: row.title,
+      content: row.content,
+      author: row.author,
+      type: row.type,
+      date: row.date
     }));
 
     res.json({ success: true, data: news });
@@ -1133,7 +1038,6 @@ app.get('/api/news', async (req, res) => {
   }
 });
 
-// Создание новости
 app.post('/api/news', async (req, res) => {
   const { title, content, author, type } = req.body;
 
@@ -1152,6 +1056,7 @@ app.post('/api/news', async (req, res) => {
       date: result.rows[0].date
     };
 
+    console.log(`✅ Новость создана: ${title} (Автор: ${author})`);
     res.json({ success: true, data: news });
   } catch (error) {
     console.error('Create news error:', error);
@@ -1159,14 +1064,45 @@ app.post('/api/news', async (req, res) => {
   }
 });
 
-// Удаление новости
+app.patch('/api/news/:id', async (req, res) => {
+  const { id } = req.params;
+  const newsId = parseInt(id, 10);
+  const { title, content, author, type } = req.body;
+
+  try {
+    const result = await pool.query(
+      'UPDATE news SET title = $1, content = $2, author = $3, type = $4 WHERE id = $5 RETURNING id, title, content, author, type, date',
+      [title, content, author, type, newsId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ success: false, message: 'Новость не найдена' });
+    }
+
+    const news = {
+      id: result.rows[0].id,
+      title: result.rows[0].title,
+      content: result.rows[0].content,
+      author: result.rows[0].author,
+      type: result.rows[0].type,
+      date: result.rows[0].date
+    };
+
+    console.log(`✅ Новость обновлена: ${title} (ID: ${newsId})`);
+    res.json({ success: true, data: news });
+  } catch (error) {
+    console.error('Update news error:', error);
+    res.status(500).json({ success: false, message: 'Ошибка сервера' });
+  }
+});
+
 app.delete('/api/news/:id', async (req, res) => {
   const { id } = req.params;
   const newsId = parseInt(id, 10);
 
   try {
     const result = await pool.query(
-      'DELETE FROM news WHERE id = $1 RETURNING id',
+      'DELETE FROM news WHERE id = $1 RETURNING id, title',
       [newsId]
     );
 
@@ -1174,52 +1110,20 @@ app.delete('/api/news/:id', async (req, res) => {
       return res.json({ success: false, message: 'Новость не найдена' });
     }
 
-    res.json({ success: true, message: 'Новость удалена' });
+    console.log(`✅ Новость удалена: ${result.rows[0].title} (ID: ${newsId})`);
+    res.json({ success: true, message: 'Новость удалена', title: result.rows[0].title });
   } catch (error) {
     console.error('Delete news error:', error);
     res.status(500).json({ success: false, message: 'Ошибка сервера' });
   }
 });
 
-// Serve index.html for all other routes (SPA support)
+// Serve React app for all other routes
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
+  res.sendFile(path.join(__dirname, '../dist', 'index.html'));
 });
 
 app.listen(PORT, () => {
-  console.log('\n╔════════════════════════════════════════════════════════════╗');
-  console.log('║              🚀 ShakeDown Server v3.1.0                   ║');
-  console.log('╚════════════════════════════════════════════════════════════╝\n');
-  console.log(`✅ Сервер запущен на порту ${PORT}`);
-  console.log(`🔐 Google OAuth: ${process.env.GOOGLE_CLIENT_ID ? 'Настроен' : 'Не настроен'}`);
-  console.log(`🔐 Yandex OAuth: ${process.env.YANDEX_CLIENT_ID ? 'Настроен' : 'Не настроен'}`);
-  console.log(`🗄️  База данных: Подключена\n`);
-  console.log('📝 Доступные эндпоинты:');
-  console.log('   GET  /api/auth/google - Вход через Google');
-  console.log('   GET  /api/auth/google/callback - Google OAuth callback');
-  console.log('   GET  /api/auth/yandex - Вход через Yandex');
-  console.log('   GET  /api/auth/yandex/callback - Yandex OAuth callback');
-  console.log('   POST /api/auth/admin - Вход администратора');
-  console.log('   GET  /api/auth/logout - Выход из системы');
-  console.log('   GET  /api/users - Список пользователей');
-  console.log('   GET  /api/users/:id - Информация о пользователе');
-  console.log('   PATCH /api/users/:id/subscription - Изменение подписки');
-  console.log('   GET  /api/news - Список новостей');
-  console.log('   POST /api/news - Создание новости');
-  console.log('   DELETE /api/news/:id - Удаление новости');
-  console.log('   POST /api/analytics - Запись события аналитики');
-  console.log('   GET  /api/analytics/stats - Получение статистики\n');
-  console.log('🔗 Authorized redirect URIs:');
-  console.log('   Google:');
-  console.log(`     ${process.env.GOOGLE_CALLBACK_URL || 'https://oneshakedown.onrender.com/api/auth/google/callback'}`);
-  console.log('     http://localhost:8080/api/auth/google/callback');
-  console.log('   Yandex:');
-  console.log(`     ${process.env.YANDEX_CALLBACK_URL || 'https://oneshakedown.onrender.com/api/auth/yandex/callback'}`);
-  console.log('     http://localhost:8080/api/auth/yandex/callback');
-  console.log('     http://localhost:3000/callback (для лаунчера)\n');
-  console.log('🌐 Authorized JavaScript origins / Suggest Hostname:');
-  console.log('   https://oneshakedown.onrender.com');
-  console.log('   http://localhost:8080');
-  console.log('   localhost\n');
-  console.log('═══════════════════════════════════════════════════════════════\n');
+  console.log(`🚀 Сервер запущен на порту ${PORT}`);
+  console.log(`🌐 URL: ${process.env.VITE_API_URL || `http://localhost:${PORT}`}`);
 });
