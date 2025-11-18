@@ -42,8 +42,15 @@ const authLimiter = rateLimit({
 // Лимит для API запросов
 const apiLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 минута
-  max: 30, // максимум 30 запросов в минуту
+  max: 100, // максимум 100 запросов в минуту
   message: { success: false, message: 'Превышен лимит запросов к API' },
+});
+
+// Более мягкий лимит для чтения данных (GET запросы)
+const readLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 минута
+  max: 200, // максимум 200 запросов в минуту
+  message: { success: false, message: 'Слишком много запросов, попробуйте позже' },
 });
 
 // Применяем общий лимит ко всем запросам
@@ -670,7 +677,7 @@ app.patch('/api/users/:id', apiLimiter, async (req, res) => {
 });
 
 // Получение информации о пользователе
-app.get('/api/users/:id', apiLimiter, async (req, res) => {
+app.get('/api/users/:id', readLimiter, async (req, res) => {
   const { id } = req.params;
   const userId = parseInt(id, 10);
   
@@ -713,7 +720,7 @@ app.get('/api/users/:id', apiLimiter, async (req, res) => {
 });
 
 // Получение всех пользователей (для админки)
-app.get('/api/users', apiLimiter, async (req, res) => {
+app.get('/api/users', readLimiter, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT id, username, email, subscription, registered_at, is_admin, is_banned, avatar, uid, settings 
@@ -1089,7 +1096,7 @@ app.post('/api/analytics', async (req, res) => {
   }
 });
 
-app.get('/api/analytics/stats', async (req, res) => {
+app.get('/api/analytics/stats', readLimiter, async (req, res) => {
   try {
     const totalVisits = await pool.query(
       "SELECT COUNT(*) as count FROM analytics WHERE event_type = 'page_view'"
@@ -1170,7 +1177,7 @@ app.get('/api/analytics/stats', async (req, res) => {
 
 // ============= NEWS API =============
 
-app.get('/api/news', async (req, res) => {
+app.get('/api/news', readLimiter, async (req, res) => {
   try {
     const result = await pool.query(
       'SELECT id, title, content, author, type, date FROM news ORDER BY date DESC'
@@ -1275,7 +1282,7 @@ app.delete('/api/news/:id', async (req, res) => {
 // ============= COMMENTS API =============
 
 // Получить комментарии к новости
-app.get('/api/news/:newsId/comments', async (req, res) => {
+app.get('/api/news/:newsId/comments', readLimiter, async (req, res) => {
   const { newsId } = req.params;
 
   try {
@@ -1417,7 +1424,7 @@ app.post('/api/comments/:id/reaction', apiLimiter, async (req, res) => {
 // ============= PREMIUM CHAT API =============
 
 // Получить сообщения чата (только для premium/alpha)
-app.get('/api/premium-chat', async (req, res) => {
+app.get('/api/premium-chat', readLimiter, async (req, res) => {
   const { userId } = req.query;
 
   try {
