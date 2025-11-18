@@ -38,21 +38,6 @@ const authLimiter = rateLimit({
   message: { success: false, message: 'Слишком много попыток входа, попробуйте через 15 минут' },
   skipSuccessfulRequests: true,
 });
-
-// Лимит для API запросов
-const apiLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 минута
-  max: 100, // максимум 100 запросов в минуту
-  message: { success: false, message: 'Превышен лимит запросов к API' },
-});
-
-// Более мягкий лимит для чтения данных (GET запросы)
-const readLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 минута
-  max: 200, // максимум 200 запросов в минуту
-  message: { success: false, message: 'Слишком много запросов, попробуйте позже' },
-});
-
 // Применяем общий лимит ко всем запросам
 app.use(generalLimiter);
 
