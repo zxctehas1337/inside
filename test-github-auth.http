@@ -1,0 +1,32 @@
+### Test GitHub OAuth Flow
+### Этот файл можно использовать с REST Client extension в VS Code
+
+### 1. Проверка здоровья сервера
+GET https://oneshakedown.onrender.com/api/health
+
+### 2. Инициация GitHub OAuth (веб)
+GET https://oneshakedown.onrender.com/api/auth/github?redirect=web
+
+### 3. Инициация GitHub OAuth (лаунчер)
+GET https://oneshakedown.onrender.com/api/auth/github?redirect=launcher
+
+### 4. Проверка пользователя после авторизации (замените USER_ID и TOKEN)
+GET https://oneshakedown.onrender.com/api/users/1
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### 5. Получение всех пользователей (для админа)
+GET https://oneshakedown.onrender.com/api/users
+Authorization: Bearer YOUR_ADMIN_JWT_TOKEN_HERE
+
+### 6. Обновление аватара пользователя
+POST https://oneshakedown.onrender.com/api/users/1/avatar
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+{
+  "avatar": "https://example.com/new-avatar.jpg"
+}
+
+### 7. Удаление пользовательского аватара (вернется к GitHub/Google/Yandex)
+DELETE https://oneshakedown.onrender.com/api/users/1/avatar
+Authorization: Bearer YOUR_JWT_TOKEN_HERE

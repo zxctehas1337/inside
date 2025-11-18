@@ -5,6 +5,7 @@ const { Pool } = require('pg');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const YandexStrategy = require('passport-yandex').Strategy;
+const GitHubStrategy = require('passport-github2').Strategy;
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
@@ -232,6 +233,75 @@ passport.use(new YandexStrategy({
   }
 ));
 
+// GitHub OAuth Strategy
+passport.use(new GitHubStrategy({
+    clientID: process.env.GITHUB_CLIENT_ID,
+    clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    callbackURL: process.env.GITHUB_CALLBACK_URL || 'https://oneshakedown.onrender.com/api/auth/github/callback',
+    scope: ['user:email']
+  },
+  async (accessToken, refreshToken, profile, done) => {
+    try {
+      const githubAvatar = profile.photos && profile.photos.length > 0 ? profile.photos[0].value : null;
+      const email = profile.emails && profile.emails.length > 0 ? profile.emails[0].value : null;
+      
+      if (!email) {
+        return done(new Error('Email не предоставлен GitHub'), null);
+      }
+      
+      let result = await pool.query(
+        'SELECT * FROM users WHERE github_id = $1',
+        [profile.id]
+      );
+
+      if (result.rows.length > 0) {
+        const user = result.rows[0];
+        const updateResult = await pool.query(
+          'UPDATE users SET github_avatar = $1 WHERE github_id = $2 RETURNING *',
+          [githubAvatar, profile.id]
+        );
+        return done(null, updateResult.rows[0]);
+      }
+
+      result = await pool.query(
+        'SELECT * FROM users WHERE email = $1',
+        [email]
+      );
+
+      if (result.rows.length > 0) {
+        const user = result.rows[0];
+        const avatarToSet = user.custom_avatar ? user.custom_avatar : (githubAvatar || user.avatar);
+        const updateResult = await pool.query(
+          'UPDATE users SET github_id = $1, email_verified = true, github_avatar = $2, avatar = $3 WHERE id = $4 RETURNING *',
+          [profile.id, githubAvatar, avatarToSet, result.rows[0].id]
+        );
+        return done(null, updateResult.rows[0]);
+      }
+
+      const username = (profile.username || email.split('@')[0]) + '_' + Math.floor(Math.random() * 1000);
+      
+      const newUserResult = await pool.query(
+        `INSERT INTO users (username, email, password, github_id, email_verified, subscription, avatar, github_avatar) 
+         VALUES ($1, $2, $3, $4, true, 'free', $5, $6) 
+         RETURNING *`,
+        [username, email, '', profile.id, githubAvatar, githubAvatar]
+      );
+      
+      const year = new Date(newUserResult.rows[0].registered_at).getFullYear();
+      const uid = `AZ-${year}-${String(newUserResult.rows[0].id).padStart(3, '0')}`;
+      
+      const updatedUserResult = await pool.query(
+        'UPDATE users SET uid = $1 WHERE id = $2 RETURNING *',
+        [uid, newUserResult.rows[0].id]
+      );
+
+      return done(null, updatedUserResult.rows[0]);
+    } catch (error) {
+      return done(error, null);
+    }
+  }
+));
+
 // Serve static files from the dist directory
 app.use(express.static(path.join(__dirname, '../dist')));
 
@@ -264,10 +334,12 @@ async function initDatabase() {
       ALTER TABLE users 
       ADD COLUMN IF NOT EXISTS google_id VARCHAR(255) UNIQUE,
       ADD COLUMN IF NOT EXISTS yandex_id VARCHAR(255) UNIQUE,
+      ADD COLUMN IF NOT EXISTS github_id VARCHAR(255) UNIQUE,
       ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT false,
       ADD COLUMN IF NOT EXISTS avatar TEXT,
       ADD COLUMN IF NOT EXISTS google_avatar TEXT,
       ADD COLUMN IF NOT EXISTS yandex_avatar TEXT,
+      ADD COLUMN IF NOT EXISTS github_avatar TEXT,
       ADD COLUMN IF NOT EXISTS custom_avatar TEXT,
       ADD COLUMN IF NOT EXISTS uid VARCHAR(50) UNIQUE
     `);
@@ -477,6 +549,64 @@ app.get('/api/auth/yandex/callback',
   passport.authenticate('yandex', { failureRedirect: '/auth', session: false }),
   (req, res) => {
     console.log(`✅ Yandex OAuth успешен для пользователя: ${req.user.email}`);
+    
+    let redirectUrl = req.query.state || 'web';
+    
+    if (redirectUrl === 'web' && req.headers['user-agent']) {
+      const userAgent = req.headers['user-agent'].toLowerCase();
+      if (userAgent.includes('electron') || userAgent.includes('launcher')) {
+        redirectUrl = 'launcher';
+        console.log(`🔄 Обнаружен лаунчер по User-Agent`);
+      }
+    }
+    
+    // Генерируем JWT токен
+    const token = generateToken(req.user);
+    
+    const user = {
+      id: req.user.id,
+      username: req.user.username,
+      email: req.user.email,
+      subscription: req.user.subscription,
+      registeredAt: req.user.registered_at,
+      isAdmin: req.user.is_admin,
+      isBanned: req.user.is_banned,
+      avatar: req.user.avatar,
+      uid: req.user.uid,
+      settings: req.user.settings,
+      token: token
+    };
+    
+    if (redirectUrl === 'launcher') {
+      const userData = encodeURIComponent(JSON.stringify(user));
+      const callbackUrl = `http://localhost:3000/callback?user=${userData}`;
+      console.log(`🔄 Перенаправление на локальный сервер лаунчера`);
+      res.redirect(callbackUrl);
+    } else {
+      const userData = encodeURIComponent(JSON.stringify(user));
+      console.log(`🌐 Перенаправление на веб-дашборд для пользователя: ${user.email}`);
+      res.redirect(`/dashboard?auth=success&user=${userData}`);
+    }
+  }
+);
+
+// ============= GITHUB OAUTH ENDPOINTS =============
+
+app.get('/api/auth/github', (req, res, next) => {
+  const redirectUrl = req.query.redirect || 'web';
+  console.log(`🔗 GitHub Redirect URL: ${redirectUrl}`);
+  
+  passport.authenticate('github', { 
+    scope: ['user:email'],
+    state: redirectUrl,
+    session: false
+  })(req, res, next);
+});
+
+app.get('/api/auth/github/callback',
+  passport.authenticate('github', { failureRedirect: '/auth', session: false }),
+  (req, res) => {
+    console.log(`✅ GitHub OAuth успешен для пользователя: ${req.user.email}`);
     
     let redirectUrl = req.query.state || 'web';
     
