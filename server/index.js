@@ -16,6 +16,9 @@ const PORT = process.env.PORT || 8080;
 
 // ============= ЛЕГКАЯ ЗАЩИТА =============
 
+// Настройка trust proxy для работы за прокси (Render, Heroku и т.д.)
+app.set('trust proxy', 1);
+
 // Helmet - базовая защита HTTP заголовков
 app.use(helmet({
   contentSecurityPolicy: false, // Отключаем для OAuth
@@ -761,7 +764,7 @@ app.patch('/api/users/:id/subscription',
       settings: dbUser.settings
     };
 
-    console.log(`✅ Подписка изменена для пользователя: ${dbUser.username} (ID: ${dbUser.id}) -> ${subscription}`);
+    console.log(``);
     res.json({ success: true, data: user });
   } catch (error) {
     console.error('❌ Change subscription error:', error);
@@ -790,7 +793,7 @@ app.delete('/api/users/:id', async (req, res) => {
     }
 
     const user = checkUser.rows[0];
-    console.log(`🗑️  Удаление пользователя: ID=${userId}, Username=${user.username}, Email=${user.email}`);
+    console.log(``);
 
     const result = await pool.query(
       'DELETE FROM users WHERE id = $1 RETURNING id, username, email',
@@ -801,7 +804,7 @@ app.delete('/api/users/:id', async (req, res) => {
       return res.json({ success: false, message: 'Не удалось удалить пользователя' });
     }
 
-    console.log(`✅ Пользователь успешно удален: ${result.rows[0].username}`);
+    console.log(``);
 
     res.json({ 
       success: true, 
@@ -1103,11 +1106,17 @@ app.get('/api/analytics/stats', async (req, res) => {
     `);
 
     const avgSessionTime = await pool.query(`
-      SELECT 
-        AVG(EXTRACT(EPOCH FROM (MAX(timestamp) - MIN(timestamp)))) as avg_time
-      FROM analytics
-      WHERE user_id IS NOT NULL
-      GROUP BY user_id, DATE(timestamp)
+      WITH session_durations AS (
+        SELECT 
+          user_id,
+          DATE(timestamp) as session_date,
+          EXTRACT(EPOCH FROM (MAX(timestamp) - MIN(timestamp))) as duration
+        FROM analytics
+        WHERE user_id IS NOT NULL
+        GROUP BY user_id, DATE(timestamp)
+      )
+      SELECT AVG(duration) as avg_time
+      FROM session_durations
     `);
 
     const hourlyActivity = await pool.query(`
@@ -1307,7 +1316,7 @@ app.post('/api/news/:newsId/comments', async (req, res) => {
       reactions: []
     };
 
-    console.log(`✅ Комментарий создан: News ID ${newsId}, User ID ${userId}`);
+    console.log(``);
     res.json({ success: true, data: comment });
   } catch (error) {
     console.error('Create comment error:', error);

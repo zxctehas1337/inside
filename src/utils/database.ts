@@ -32,10 +32,10 @@ export class Database {
   }
 
   async deleteAccount(userId: number) {
-    console.log('🗑️  Database.deleteAccount called with userId:', userId)
+    console.log('', userId)
     
     const result = await api.deleteUser(userId)
-    console.log('🗑️  API deleteUser result:', result)
+    console.log('', result)
     
     if (result.success) {
       console.log('✅ Account deleted successfully')
