@@ -14,32 +14,30 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// ============= ЗАЩИТА ОТ DDOS И АТАК =============
+// ============= ЛЕГКАЯ ЗАЩИТА =============
 
-// Helmet - защита HTTP заголовков
+// Helmet - базовая защита HTTP заголовков
 app.use(helmet({
   contentSecurityPolicy: false, // Отключаем для OAuth
   crossOriginEmbedderPolicy: false
 }));
 
-// Rate Limiting - защита от DDoS
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 минут
-  max: 100, // максимум 100 запросов с одного IP
-  message: { success: false, message: 'Слишком много запросов, попробуйте позже' },
+// Легкий лимит для обычных запросов (очень мягкий)
+const lightLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 минута
+  max: 1000, // максимум 1000 запросов в минуту с одного IP
+  message: { success: false, message: 'Слишком много запросов' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// Строгий лимит для авторизации
-const authLimiter = rateLimit({
+// Строгий лимит только для входа администратора
+const adminAuthLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 минут
-  max: 5, // максимум 5 попыток входа
-  message: { success: false, message: 'Слишком много попыток входа, попробуйте через 15 минут' },
+  max: 10, // максимум 10 попыток входа для админа
+  message: { success: false, message: 'Слишком много попыток входа администратора, попробуйте через 15 минут' },
   skipSuccessfulRequests: true,
 });
-// Применяем общий лимит ко всем запросам
-app.use(generalLimiter);
 
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'KOTAKBAS9919121';
@@ -530,7 +528,7 @@ app.get('/api/auth/yandex/callback',
 
 // Вход администратора
 app.post('/api/auth/admin', 
-  authLimiter, // Применяем строгий лимит
+  adminAuthLimiter, // Применяем строгий лимит только для админов
   [
     body('email').isEmail().normalizeEmail().trim().escape(),
     body('password').isLength({ min: 1 }).trim()
@@ -596,7 +594,7 @@ app.get('/api/auth/logout', (req, res) => {
 });
 
 // Обновление пользователя
-app.patch('/api/users/:id', apiLimiter, async (req, res) => {
+app.patch('/api/users/:id', async (req, res) => {
   const { id } = req.params;
   const userId = parseInt(id, 10);
   
@@ -662,7 +660,7 @@ app.patch('/api/users/:id', apiLimiter, async (req, res) => {
 });
 
 // Получение информации о пользователе
-app.get('/api/users/:id', readLimiter, async (req, res) => {
+app.get('/api/users/:id', async (req, res) => {
   const { id } = req.params;
   const userId = parseInt(id, 10);
   
@@ -705,7 +703,7 @@ app.get('/api/users/:id', readLimiter, async (req, res) => {
 });
 
 // Получение всех пользователей (для админки)
-app.get('/api/users', readLimiter, async (req, res) => {
+app.get('/api/users', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT id, username, email, subscription, registered_at, is_admin, is_banned, avatar, uid, settings 
@@ -734,7 +732,6 @@ app.get('/api/users', readLimiter, async (req, res) => {
 
 // Изменение подписки пользователя (только для администратора)
 app.patch('/api/users/:id/subscription', 
-  apiLimiter,
   [
     body('subscription').isIn(['free', 'premium', 'alpha'])
   ],
@@ -790,7 +787,7 @@ app.patch('/api/users/:id/subscription',
 });
 
 // Удаление пользователя
-app.delete('/api/users/:id', apiLimiter, async (req, res) => {
+app.delete('/api/users/:id', async (req, res) => {
   const { id } = req.params;
   const userId = parseInt(id, 10);
   
@@ -837,7 +834,6 @@ app.delete('/api/users/:id', apiLimiter, async (req, res) => {
 
 // Загрузка пользовательской аватарки
 app.post('/api/users/:id/avatar', 
-  apiLimiter,
   [
     body('avatar').isURL().trim()
   ],
@@ -895,7 +891,7 @@ app.post('/api/users/:id/avatar',
 });
 
 // Удаление пользовательской аватарки
-app.delete('/api/users/:id/avatar', apiLimiter, async (req, res) => {
+app.delete('/api/users/:id/avatar', async (req, res) => {
   const { id } = req.params;
   const userId = parseInt(id, 10);
   
@@ -989,7 +985,6 @@ app.get('/api/client/version', async (req, res) => {
 });
 
 app.post('/api/client/version', 
-  apiLimiter,
   [
     body('version').isLength({ min: 1, max: 50 }).trim(),
     body('downloadUrl').isURL().trim(),
@@ -1081,7 +1076,7 @@ app.post('/api/analytics', async (req, res) => {
   }
 });
 
-app.get('/api/analytics/stats', readLimiter, async (req, res) => {
+app.get('/api/analytics/stats', async (req, res) => {
   try {
     const totalVisits = await pool.query(
       "SELECT COUNT(*) as count FROM analytics WHERE event_type = 'page_view'"
@@ -1162,7 +1157,7 @@ app.get('/api/analytics/stats', readLimiter, async (req, res) => {
 
 // ============= NEWS API =============
 
-app.get('/api/news', readLimiter, async (req, res) => {
+app.get('/api/news', async (req, res) => {
   try {
     const result = await pool.query(
       'SELECT id, title, content, author, type, date FROM news ORDER BY date DESC'
@@ -1267,7 +1262,7 @@ app.delete('/api/news/:id', async (req, res) => {
 // ============= COMMENTS API =============
 
 // Получить комментарии к новости
-app.get('/api/news/:newsId/comments', readLimiter, async (req, res) => {
+app.get('/api/news/:newsId/comments', async (req, res) => {
   const { newsId } = req.params;
 
   try {
@@ -1301,7 +1296,7 @@ app.get('/api/news/:newsId/comments', readLimiter, async (req, res) => {
 });
 
 // Создать комментарий
-app.post('/api/news/:newsId/comments', apiLimiter, async (req, res) => {
+app.post('/api/news/:newsId/comments', async (req, res) => {
   const { newsId } = req.params;
   const { userId, content } = req.body;
 
@@ -1338,7 +1333,7 @@ app.post('/api/news/:newsId/comments', apiLimiter, async (req, res) => {
 });
 
 // Удалить комментарий
-app.delete('/api/comments/:id', apiLimiter, async (req, res) => {
+app.delete('/api/comments/:id', async (req, res) => {
   const { id } = req.params;
   const { userId } = req.body;
 
@@ -1372,7 +1367,7 @@ app.delete('/api/comments/:id', apiLimiter, async (req, res) => {
 });
 
 // Добавить/удалить реакцию
-app.post('/api/comments/:id/reaction', apiLimiter, async (req, res) => {
+app.post('/api/comments/:id/reaction', async (req, res) => {
   const { id } = req.params;
   const { userId, reaction } = req.body;
 
@@ -1409,7 +1404,7 @@ app.post('/api/comments/:id/reaction', apiLimiter, async (req, res) => {
 // ============= PREMIUM CHAT API =============
 
 // Получить сообщения чата (только для premium/alpha)
-app.get('/api/premium-chat', readLimiter, async (req, res) => {
+app.get('/api/premium-chat', async (req, res) => {
   const { userId } = req.query;
 
   try {
@@ -1440,7 +1435,7 @@ app.get('/api/premium-chat', readLimiter, async (req, res) => {
 });
 
 // Отправить сообщение в чат (только для premium/alpha)
-app.post('/api/premium-chat', apiLimiter, async (req, res) => {
+app.post('/api/premium-chat', async (req, res) => {
   const { userId, message } = req.body;
 
   if (!message || message.trim().length === 0) {
