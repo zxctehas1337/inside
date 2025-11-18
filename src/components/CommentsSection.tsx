@@ -24,11 +24,31 @@ export default function CommentsSection({ newsId }: CommentsSectionProps) {
   const [comments, setComments] = useState<Comment[]>([])
   const [newComment, setNewComment] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
+  const [commentsCount, setCommentsCount] = useState(0)
   const currentUser = getCurrentUser()
 
   useEffect(() => {
-    loadComments()
+    loadCommentsCount()
   }, [newsId])
+
+  useEffect(() => {
+    if (isOpen) {
+      loadComments()
+    }
+  }, [isOpen, newsId])
+
+  const loadCommentsCount = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/news/${newsId}/comments`)
+      const data = await response.json()
+      if (data.success) {
+        setCommentsCount(data.data.length)
+      }
+    } catch (error) {
+      console.error('Failed to load comments count:', error)
+    }
+  }
 
   const loadComments = async () => {
     try {
@@ -36,6 +56,7 @@ export default function CommentsSection({ newsId }: CommentsSectionProps) {
       const data = await response.json()
       if (data.success) {
         setComments(data.data)
+        setCommentsCount(data.data.length)
       }
     } catch (error) {
       console.error('Failed to load comments:', error)
@@ -127,90 +148,110 @@ export default function CommentsSection({ newsId }: CommentsSectionProps) {
 
   return (
     <div className="comments-section">
-      <h3 className="comments-title">
-        Комментарии <span className="comments-count">{comments.length}</span>
-      </h3>
+      <button 
+        className="comments-toggle-btn"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M3 5C3 3.89543 3.89543 3 5 3H15C16.1046 3 17 3.89543 17 5V12C17 13.1046 16.1046 14 15 14H7L3 17V5Z" stroke="currentColor" strokeWidth="1.5"/>
+        </svg>
+        <span>Комментарии</span>
+        {commentsCount > 0 && <span className="comments-count-badge">{commentsCount}</span>}
+        <svg 
+          className={`comments-toggle-icon ${isOpen ? 'open' : ''}`}
+          width="16" 
+          height="16" 
+          viewBox="0 0 16 16" 
+          fill="none"
+        >
+          <path d="M4 6L8 10L12 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      </button>
 
-      {currentUser ? (
-        <form className="comment-form" onSubmit={handleSubmitComment}>
-          <img src={currentUser.avatar || '/icon.ico'} alt="Avatar" className="comment-avatar" />
-          <div className="comment-input-wrapper">
-            <textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Напишите комментарий..."
-              className="comment-input"
-              rows={3}
-              maxLength={500}
-            />
-            <div className="comment-form-footer">
-              <span className="comment-char-count">{newComment.length}/500</span>
-              <button type="submit" disabled={loading || !newComment.trim()} className="comment-submit-btn">
-                {loading ? 'Отправка...' : 'Отправить'}
-              </button>
+      {isOpen && (
+        <div className="comments-content">
+          {currentUser ? (
+            <form className="comment-form" onSubmit={handleSubmitComment}>
+              <img src={currentUser.avatar || '/icon.ico'} alt="Avatar" className="comment-avatar" />
+              <div className="comment-input-wrapper">
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Напишите комментарий..."
+                  className="comment-input"
+                  rows={2}
+                  maxLength={500}
+                />
+                <div className="comment-form-footer">
+                  <span className="comment-char-count">{newComment.length}/500</span>
+                  <button type="submit" disabled={loading || !newComment.trim()} className="comment-submit-btn">
+                    {loading ? 'Отправка...' : 'Отправить'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          ) : (
+            <div className="comment-login-prompt">
+              <p>Войдите, чтобы оставить комментарий</p>
             </div>
+          )}
+
+          <div className="comments-list">
+            {comments.map(comment => (
+              <div key={comment.id} className="comment">
+                <img src={comment.avatar || '/icon.ico'} alt={comment.username} className="comment-avatar" />
+                <div className="comment-content">
+                  <div className="comment-header">
+                    <div className="comment-author">
+                      <span className="comment-username">{comment.username}</span>
+                      {comment.subscription !== 'free' && (
+                        <span className={`comment-badge ${comment.subscription}`}>
+                          {comment.subscription === 'alpha' ? 'Alpha' : 'Premium'}
+                        </span>
+                      )}
+                    </div>
+                    <span className="comment-date">{formatDate(comment.created_at)}</span>
+                  </div>
+                  <p className="comment-text">{comment.content}</p>
+                  <div className="comment-actions">
+                    <div className="comment-reactions">
+                      {REACTIONS.map(reaction => {
+                        const reactionData = comment.reactions.find(r => r.reaction === reaction)
+                        const count = reactionData?.count || 0
+                        return (
+                          <button
+                            key={reaction}
+                            className={`reaction-btn ${count > 0 ? 'active' : ''}`}
+                            onClick={() => handleReaction(comment.id, reaction)}
+                            disabled={!currentUser}
+                          >
+                            {reaction} {count > 0 && <span className="reaction-count">{count}</span>}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {currentUser && (currentUser.id === comment.user_id || currentUser.isAdmin) && (
+                      <button className="comment-delete-btn" onClick={() => handleDeleteComment(comment.id)}>
+                        Удалить
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {comments.length === 0 && (
+              <div className="comments-empty">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                  <path d="M8 12C8 9.79086 9.79086 8 12 8H36C38.2091 8 40 9.79086 40 12V28C40 30.2091 38.2091 32 36 32H16L8 40V12Z" stroke="currentColor" strokeWidth="2"/>
+                </svg>
+                <p>Пока нет комментариев</p>
+                <span>Будьте первым!</span>
+              </div>
+            )}
           </div>
-        </form>
-      ) : (
-        <div className="comment-login-prompt">
-          <p>Войдите, чтобы оставить комментарий</p>
         </div>
       )}
-
-      <div className="comments-list">
-        {comments.map(comment => (
-          <div key={comment.id} className="comment">
-            <img src={comment.avatar || '/icon.ico'} alt={comment.username} className="comment-avatar" />
-            <div className="comment-content">
-              <div className="comment-header">
-                <div className="comment-author">
-                  <span className="comment-username">{comment.username}</span>
-                  {comment.subscription !== 'free' && (
-                    <span className={`comment-badge ${comment.subscription}`}>
-                      {comment.subscription === 'alpha' ? '⚡ Alpha' : '⭐ Premium'}
-                    </span>
-                  )}
-                </div>
-                <span className="comment-date">{formatDate(comment.created_at)}</span>
-              </div>
-              <p className="comment-text">{comment.content}</p>
-              <div className="comment-actions">
-                <div className="comment-reactions">
-                  {REACTIONS.map(reaction => {
-                    const reactionData = comment.reactions.find(r => r.reaction === reaction)
-                    const count = reactionData?.count || 0
-                    return (
-                      <button
-                        key={reaction}
-                        className={`reaction-btn ${count > 0 ? 'active' : ''}`}
-                        onClick={() => handleReaction(comment.id, reaction)}
-                        disabled={!currentUser}
-                      >
-                        {reaction} {count > 0 && <span className="reaction-count">{count}</span>}
-                      </button>
-                    )
-                  })}
-                </div>
-                {currentUser && (currentUser.id === comment.user_id || currentUser.isAdmin) && (
-                  <button className="comment-delete-btn" onClick={() => handleDeleteComment(comment.id)}>
-                    Удалить
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {comments.length === 0 && (
-          <div className="comments-empty">
-            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-              <path d="M8 12C8 9.79086 9.79086 8 12 8H36C38.2091 8 40 9.79086 40 12V28C40 30.2091 38.2091 32 36 32H16L8 40V12Z" stroke="currentColor" strokeWidth="2"/>
-            </svg>
-            <p>Пока нет комментариев</p>
-            <span>Будьте первым!</span>
-          </div>
-        )}
-      </div>
     </div>
   )
 }

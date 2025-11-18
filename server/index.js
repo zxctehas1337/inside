@@ -50,7 +50,7 @@ const apiLimiter = rateLimit({
 app.use(generalLimiter);
 
 // JWT Secret
-const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'your-jwt-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'KOTAKBAS9919121';
 
 // Подключение к PostgreSQL
 const pool = new Pool({

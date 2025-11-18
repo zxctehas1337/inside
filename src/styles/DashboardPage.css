@@ -631,3 +631,18 @@
         justify-content: center;
     }
 }
+
+/* Premium Chat Container */
+.chat-page-container {
+  height: calc(100vh - 200px);
+  min-height: 600px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .chat-page-container {
+    height: calc(100vh - 180px);
+    min-height: 500px;
+  }
+}

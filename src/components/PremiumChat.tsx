@@ -85,33 +85,34 @@ export default function PremiumChat() {
     return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
   }
 
-  if (!currentUser) {
-    return (
-      <div className="premium-chat-locked">
-        <div className="premium-chat-lock-icon">🔒</div>
-        <h3>Премиум Чат</h3>
-        <p>Войдите, чтобы получить доступ</p>
-      </div>
-    )
-  }
-
   if (!hasAccess) {
     return (
       <div className="premium-chat-locked">
-        <div className="premium-chat-lock-icon">⭐</div>
-        <h3>Эксклюзивный Чат</h3>
-        <p>Доступен только для Premium и Alpha пользователей</p>
+        <svg className="lock-icon" width="80" height="80" viewBox="0 0 80 80" fill="none">
+          <rect x="20" y="35" width="40" height="30" rx="4" stroke="currentColor" strokeWidth="3"/>
+          <path d="M28 35V25C28 18.3726 33.3726 13 40 13C46.6274 13 52 18.3726 52 25V35" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
+          <circle cx="40" cy="50" r="3" fill="currentColor"/>
+        </svg>
+        <h3>Chat</h3>
+        <p>Доступен только для Premium и Alpha подписчиков</p>
         <div className="premium-features">
           <div className="premium-feature">
-            <span className="feature-icon">💬</span>
-            <span>Общение с элитой</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2"/>
+            </svg>
+            <span>Общение с элитой сообщества</span>
           </div>
           <div className="premium-feature">
-            <span className="feature-icon">⚡</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+            </svg>
             <span>Ранний доступ к новостям</span>
           </div>
           <div className="premium-feature">
-            <span className="feature-icon">🎯</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+              <path d="M12 6V12L16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
             <span>Эксклюзивные обновления</span>
           </div>
         </div>
@@ -122,16 +123,26 @@ export default function PremiumChat() {
   return (
     <div className="premium-chat">
       <div className="premium-chat-header">
-        <div className="premium-chat-title">
-          <span className="premium-icon">⭐</span>
-          <h3>Premium Chat</h3>
-          <span className="online-count">{messages.length > 0 ? `${new Set(messages.map(m => m.user_id)).size} онлайн` : ''}</span>
+        <div className="chat-header-left">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" strokeWidth="2"/>
+          </svg>
+          <div>
+            <h3>Chat</h3>
+            <span className="chat-subtitle">Эксклюзивное общение</span>
+          </div>
+        </div>
+        <div className="chat-header-right">
+          <div className="online-indicator">
+            <span className="online-dot"></span>
+            <span className="online-text">{new Set(messages.map(m => m.user_id)).size} участников</span>
+          </div>
         </div>
       </div>
 
       <div className="premium-chat-messages">
         {messages.map((msg, index) => {
-          const isOwn = msg.user_id === currentUser.id
+          const isOwn = currentUser ? msg.user_id === currentUser.id : false
           const showAvatar = index === 0 || messages[index - 1].user_id !== msg.user_id
 
           return (
@@ -146,7 +157,10 @@ export default function PremiumChat() {
                   <div className="chat-message-author">
                     <span className="chat-username">{msg.username}</span>
                     {msg.subscription === 'alpha' && (
-                      <span className="chat-badge alpha">⚡ Alpha</span>
+                      <span className="chat-badge alpha">ALPHA</span>
+                    )}
+                    {msg.subscription === 'premium' && (
+                      <span className="chat-badge premium">PREMIUM</span>
                     )}
                   </div>
                 )}
@@ -162,13 +176,14 @@ export default function PremiumChat() {
 
         {messages.length === 0 && (
           <div className="chat-empty">
-            <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-              <path d="M12 16C12 13.7909 13.7909 12 16 12H48C50.2091 12 52 13.7909 52 16V40C52 42.2091 50.2091 44 48 44H24L12 52V16Z" stroke="currentColor" strokeWidth="2"/>
-              <circle cx="24" cy="28" r="2" fill="currentColor"/>
-              <circle cx="32" cy="28" r="2" fill="currentColor"/>
-              <circle cx="40" cy="28" r="2" fill="currentColor"/>
+            <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+              <path d="M15 20C15 17.2386 17.2386 15 20 15H60C62.7614 15 65 17.2386 65 20V50C65 52.7614 62.7614 55 60 55H30L15 65V20Z" stroke="currentColor" strokeWidth="3"/>
+              <circle cx="30" cy="35" r="3" fill="currentColor"/>
+              <circle cx="40" cy="35" r="3" fill="currentColor"/>
+              <circle cx="50" cy="35" r="3" fill="currentColor"/>
             </svg>
-            <p>Начните общение!</p>
+            <p>Пока нет сообщений</p>
+            <span>Начните общение первым</span>
           </div>
         )}
       </div>
@@ -178,13 +193,13 @@ export default function PremiumChat() {
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Напишите сообщение..."
+          placeholder="Введите сообщение..."
           maxLength={300}
           disabled={loading}
         />
         <button type="submit" disabled={loading || !newMessage.trim()}>
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M2 10L18 2L12 10L18 18L2 10Z"/>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M2 10L18 2L12 10L18 18L2 10Z" fill="currentColor"/>
           </svg>
         </button>
       </form>

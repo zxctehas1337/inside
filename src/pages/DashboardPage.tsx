@@ -4,13 +4,14 @@ import AnimatedBackground from '../components/AnimatedBackground'
 import Notification from '../components/Notification'
 import { LogoutModal } from '../components/LogoutModal'
 import { DeleteAccountModal } from '../components/DeleteAccountModal'
+import PremiumChat from '../components/PremiumChat'
 import { getCurrentUser, setCurrentUser, Database } from '../utils/database'
 import { initAnalytics, trackPageView, trackButtonClick } from '../utils/analytics'
 import { User, NotificationType } from '../types'
 import { DOWNLOAD_LINKS } from '../utils/constants'
 import '../styles/DashboardPage.css'
 
-type PageType = 'home' | 'profile' | 'settings'
+type PageType = 'home' | 'profile' | 'settings' | 'chat'
 
 export default function DashboardPage() {
   const [currentPage, setCurrentPage] = useState<PageType>('home')
@@ -275,6 +276,15 @@ export default function DashboardPage() {
               </svg>
               Настройки
             </button>
+            <button
+              className={`nav-item ${currentPage === 'chat' ? 'active' : ''}`}
+              onClick={() => setCurrentPage('chat')}
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M17 9C17 12.866 13.866 16 10 16C8.88 16 7.83 15.73 6.91 15.26L3 17L4.74 13.09C4.27 12.17 4 11.12 4 10C4 6.134 7.134 3 11 3C14.866 3 18 6.134 18 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              Chat
+            </button>
           </nav>
 
           <div className="sidebar-footer">
@@ -443,6 +453,20 @@ export default function DashboardPage() {
                     {subscriptionNames[user.subscription]} версия
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Chat Page */}
+          {currentPage === 'chat' && (
+            <div className="page active">
+              <div className="page-header">
+                <h1>Chat</h1>
+                <p>Эксклюзивное общение для Premium и Alpha подписчиков</p>
+              </div>
+
+              <div className="chat-page-container">
+                <PremiumChat />
               </div>
             </div>
           )}
