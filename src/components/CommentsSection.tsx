@@ -93,6 +93,30 @@ export default function CommentsSection({ newsId }: CommentsSectionProps) {
   const handleReaction = async (commentId: number, reaction: string) => {
     if (!currentUser) return
 
+    // Оптимистическое обновление UI
+    setComments(prevComments => 
+      prevComments.map(comment => {
+        if (comment.id !== commentId) return comment
+
+        const reactions = [...comment.reactions]
+        const existingReactionIndex = reactions.findIndex(r => r.reaction === reaction)
+
+        if (existingReactionIndex >= 0) {
+          // Реакция уже есть - увеличиваем счетчик
+          reactions[existingReactionIndex] = {
+            ...reactions[existingReactionIndex],
+            count: reactions[existingReactionIndex].count + 1
+          }
+        } else {
+          // Добавляем новую реакцию
+          reactions.push({ reaction, count: 1 })
+        }
+
+        return { ...comment, reactions }
+      })
+    )
+
+    // Отправляем запрос на сервер
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/comments/${commentId}/reaction`, {
         method: 'POST',
@@ -103,11 +127,14 @@ export default function CommentsSection({ newsId }: CommentsSectionProps) {
         })
       })
 
-      if (response.ok) {
+      if (!response.ok) {
+        // Если запрос не удался, откатываем изменения
         loadComments()
       }
     } catch (error) {
       console.error('Failed to add reaction:', error)
+      // Откатываем изменения при ошибке
+      loadComments()
     }
   }
 
