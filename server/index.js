@@ -336,23 +336,6 @@ async function initDatabase() {
         UNIQUE(comment_id, user_id, reaction)
       )
     `);
-    
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS premium_chat (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-        message TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_comments_news_id ON comments(news_id);
-      CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
-      CREATE INDEX IF NOT EXISTS idx_comment_reactions_comment_id ON comment_reactions(comment_id);
-      CREATE INDEX IF NOT EXISTS idx_premium_chat_created_at ON premium_chat(created_at DESC);
-    `);
-    
     console.log('✅ База данных инициализирована');
     await createDefaultAdmin();
   } catch (error) {
