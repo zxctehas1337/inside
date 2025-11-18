@@ -336,8 +336,14 @@ async function initDatabase() {
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         reaction VARCHAR(10) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(comment_id, user_id, reaction)
+        UNIQUE(comment_id, user_id)
       )
+    `);
+    
+    // Создаем индекс для быстрого поиска реакций
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_comment_reactions_comment_id ON comment_reactions(comment_id);
+      CREATE INDEX IF NOT EXISTS idx_comment_reactions_user_id ON comment_reactions(user_id);
     `);
     console.log('✅ База данных инициализирована');
     await createDefaultAdmin();
@@ -1369,18 +1375,30 @@ app.post('/api/comments/:id/reaction', async (req, res) => {
   }
 
   try {
+    // Оптимизированный запрос: проверяем существующую реакцию пользователя
     const existingReaction = await pool.query(
-      'SELECT id FROM comment_reactions WHERE comment_id = $1 AND user_id = $2 AND reaction = $3',
-      [id, userId, reaction]
+      'SELECT id, reaction FROM comment_reactions WHERE comment_id = $1 AND user_id = $2',
+      [id, userId]
     );
 
     if (existingReaction.rows.length > 0) {
-      await pool.query(
-        'DELETE FROM comment_reactions WHERE comment_id = $1 AND user_id = $2 AND reaction = $3',
-        [id, userId, reaction]
-      );
-      res.json({ success: true, action: 'removed' });
+      // Если пользователь нажал на ту же реакцию - удаляем её
+      if (existingReaction.rows[0].reaction === reaction) {
+        await pool.query(
+          'DELETE FROM comment_reactions WHERE comment_id = $1 AND user_id = $2',
+          [id, userId]
+        );
+        res.json({ success: true, action: 'removed' });
+      } else {
+        // Если пользователь выбрал другую реакцию - обновляем её (один запрос вместо DELETE + INSERT)
+        await pool.query(
+          'UPDATE comment_reactions SET reaction = $1, created_at = CURRENT_TIMESTAMP WHERE comment_id = $2 AND user_id = $3',
+          [reaction, id, userId]
+        );
+        res.json({ success: true, action: 'updated' });
+      }
     } else {
+      // Добавляем новую реакцию
       await pool.query(
         'INSERT INTO comment_reactions (comment_id, user_id, reaction) VALUES ($1, $2, $3)',
         [id, userId, reaction]
