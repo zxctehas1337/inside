@@ -28,7 +28,6 @@ public class ModuleManager {
         // Render modules
         modules.add(new ESP());
         modules.add(new BlockESP());
-        modules.add(new com.arizon.client.module.modules.render.Chams());
         modules.add(new com.arizon.client.module.modules.render.JumpCircles());
         modules.add(new com.arizon.client.module.modules.render.ChinaHat());
         modules.add(new Tracers());
@@ -41,7 +40,6 @@ public class ModuleManager {
         modules.add(new Fly());
         modules.add(new NoFall());
         modules.add(new com.arizon.client.module.modules.movement.GuiMove());
-        modules.add(new com.arizon.client.module.modules.movement.ElytraTarget());
         
         // Player modules
         modules.add(new com.arizon.client.module.modules.player.AutoArmor());

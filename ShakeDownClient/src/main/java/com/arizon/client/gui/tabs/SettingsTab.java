@@ -33,7 +33,7 @@ public class SettingsTab extends JPanel {
         title.setForeground(ModernTheme.TEXT_PRIMARY);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainPanel.add(title);
-        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(Box.createVerticalStrut(10));
         
         // Auto-load
         ModernCheckBox autoLoadCheck = new ModernCheckBox("Auto-load on startup", config.autoLoad);
@@ -43,7 +43,7 @@ public class SettingsTab extends JPanel {
             ArizonClient.getInstance().getConfigManager().saveConfig();
         });
         mainPanel.add(autoLoadCheck);
-        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(Box.createVerticalStrut(12));
         
         // GUI Scale
         mainPanel.add(createSection("GUI Scale"));
@@ -54,7 +54,7 @@ public class SettingsTab extends JPanel {
             ArizonClient.getInstance().getConfigManager().saveConfig();
         });
         mainPanel.add(scaleSlider);
-        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(Box.createVerticalStrut(10));
         
         // FPS Limit
         mainPanel.add(createSection("FPS Limit"));
@@ -65,7 +65,7 @@ public class SettingsTab extends JPanel {
             ArizonClient.getInstance().getConfigManager().saveConfig();
         });
         mainPanel.add(fpsSlider);
-        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(Box.createVerticalStrut(10));
         
         // GUI Sensitivity
         mainPanel.add(createSection("GUI Sensitivity"));
@@ -76,11 +76,11 @@ public class SettingsTab extends JPanel {
             ArizonClient.getInstance().getConfigManager().saveConfig();
         });
         mainPanel.add(sensitivitySlider);
-        mainPanel.add(Box.createVerticalStrut(25));
+        mainPanel.add(Box.createVerticalStrut(15));
         
         // Config management
         mainPanel.add(createSection("Configuration"));
-        mainPanel.add(Box.createVerticalStrut(10));
+        mainPanel.add(Box.createVerticalStrut(6));
         
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         buttonPanel.setBackground(ModernTheme.BACKGROUND);

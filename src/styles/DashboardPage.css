@@ -631,3 +631,205 @@
         justify-content: center;
     }
 }
+/*
+ Плавные переходы для Dashboard элементов */
+.dashboard-main {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.page {
+    animation: fadeIn 0.5s ease-out;
+}
+
+.page-header {
+    animation: slideInLeft 0.6s ease-out;
+}
+
+.stats-grid {
+    display: grid;
+    animation: fadeInUp 0.7s ease-out;
+}
+
+.stat-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 12px 32px rgba(168, 85, 247, 0.3);
+}
+
+.quick-actions {
+    animation: fadeInUp 0.8s ease-out;
+}
+
+.actions-grid {
+    display: grid;
+}
+
+.action-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.action-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 12px 32px rgba(168, 85, 247, 0.3);
+}
+
+.action-card:active {
+    transform: translateY(-4px) scale(1.01);
+}
+
+.profile-header {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.profile-avatar-section {
+    animation: scaleIn 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profile-avatar {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.profile-avatar:hover {
+    transform: scale(1.08) rotate(2deg);
+    box-shadow: 0 16px 48px rgba(168, 85, 247, 0.5);
+}
+
+.avatar-upload-btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.avatar-upload-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(168, 85, 247, 0.4);
+}
+
+.profile-info {
+    animation: slideInRight 0.7s ease-out;
+}
+
+.settings-section {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.settings-section:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.settings-section:nth-child(3) {
+    animation-delay: 0.2s;
+}
+
+.setting-item {
+    transition: all 0.3s ease;
+}
+
+.setting-item:hover {
+    transform: translateX(4px);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.toggle {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggle input:checked + .toggle-slider {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.setting-select {
+    transition: all 0.3s ease;
+}
+
+.setting-select:hover {
+    transform: scale(1.02);
+    border-color: var(--purple-500);
+}
+
+.setting-select:focus {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+}
+
+.danger-zone {
+    animation: fadeInUp 0.8s ease-out;
+}
+
+.btn-danger {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+}
+
+.btn-danger:active {
+    transform: translateY(0) scale(1.02);
+}
+
+/* Анимация для sidebar навигации */
+.sidebar-nav .nav-item {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-nav .nav-item:hover {
+    transform: translateX(4px);
+}
+
+.sidebar-nav .nav-item.active {
+    transform: translateX(0);
+    box-shadow: 0 4px 16px rgba(168, 85, 247, 0.3);
+}
+
+/* Плавная анимация для logout кнопки */
+.logout-btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.logout-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+/* Анимация для badge элементов */
+.status-badge,
+.subscription-badge {
+    transition: all 0.3s ease;
+    animation: scaleIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.status-badge:hover,
+.subscription-badge:hover {
+    transform: scale(1.1);
+}
+
+/* Плавная анимация для meta items */
+.profile-meta-item {
+    transition: all 0.3s ease;
+}
+
+.profile-meta-item:hover {
+    transform: translateX(4px);
+}
+
+/* Анимация для stat иконок */
+.stat-icon {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat-card:hover .stat-icon {
+    transform: scale(1.1) rotate(5deg);
+}
+
+/* Плавная анимация для action card иконок */
+.action-card svg {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.action-card:hover svg {
+    transform: scale(1.15) translateY(-4px);
+}

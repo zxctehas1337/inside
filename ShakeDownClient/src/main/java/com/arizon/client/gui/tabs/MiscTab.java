@@ -23,7 +23,7 @@ public class MiscTab extends JPanel {
         title.setForeground(ModernTheme.TEXT_PRIMARY);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainPanel.add(title);
-        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(Box.createVerticalStrut(10));
         
         JLabel infoLabel = new JLabel("Additional features coming soon...");
         infoLabel.setFont(ModernTheme.FONT_BODY);

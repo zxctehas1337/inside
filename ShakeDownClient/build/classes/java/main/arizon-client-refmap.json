@@ -1,8 +1,5 @@
 {
   "mappings": {
-    "com/arizon/client/mixin/ChamsMixin": {
-      "render": "Lnet/minecraft/class_897;method_3936(Lnet/minecraft/class_1297;FFLnet/minecraft/class_4587;Lnet/minecraft/class_4597;I)V"
-    },
     "com/arizon/client/mixin/ChatScreenMixin": {
       "sendMessage": "Lnet/minecraft/class_408;method_44056(Ljava/lang/String;Z)Z"
     },
@@ -54,9 +51,6 @@
   },
   "data": {
     "named:intermediary": {
-      "com/arizon/client/mixin/ChamsMixin": {
-        "render": "Lnet/minecraft/class_897;method_3936(Lnet/minecraft/class_1297;FFLnet/minecraft/class_4587;Lnet/minecraft/class_4597;I)V"
-      },
       "com/arizon/client/mixin/ChatScreenMixin": {
         "sendMessage": "Lnet/minecraft/class_408;method_44056(Ljava/lang/String;Z)Z"
       },

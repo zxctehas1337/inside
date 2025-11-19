@@ -19,7 +19,7 @@ public class ArizonClient {
     private KeyBindManager keyBindManager;
     
     private static final String VERSION = "1.0.0";
-    private static final String NAME = "ShakeDown Client";
+    private static final String NAME = "Arizon Client";
     
     public ArizonClient() {
         instance = this;
@@ -41,36 +41,6 @@ public class ArizonClient {
         
         System.out.println(NAME + " initialized successfully!");
         System.out.println("Press Right Shift to toggle GUI");
-    }
-    
-    /**
-     * Static initialization for patched Minecraft
-     * Called from MinecraftClient constructor
-     */
-    public static void initialize() {
-        try {
-            ArizonClient client = new ArizonClient();
-            client.init();
-            System.out.println("[SHAKEDOWN] Client injected and initialized!");
-        } catch (Exception e) {
-            System.err.println("[SHAKEDOWN] Failed to initialize: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-    
-    /**
-     * Called every game tick
-     * Injected into MinecraftClient.tick()
-     */
-    public static void onTick() {
-        try {
-            if (instance != null) {
-                // Update modules, GUI, etc
-                // KeyBindManager works through global key dispatcher, no tick needed
-            }
-        } catch (Exception e) {
-            // Silent fail to not crash game
-        }
     }
     
     /**

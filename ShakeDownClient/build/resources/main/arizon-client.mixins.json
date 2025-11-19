@@ -12,7 +12,6 @@
     "ScreenMixin",
     "HeldItemRendererMixin",
     "WorldRenderContextMixin",
-    "ChamsMixin",
     "optimization.WorldRendererMixin",
     "optimization.ParticleManagerMixin",
     "optimization.EntityRenderDispatcherMixin",

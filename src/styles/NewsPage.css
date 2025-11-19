@@ -372,3 +372,129 @@
         padding: 16px;
     }
 }
+
+/* Плавные переходы для News Page */
+.news-hero {
+    animation: fadeIn 0.6s ease-out;
+}
+
+.news-hero-content {
+    animation: slideInLeft 0.7s ease-out;
+}
+
+.news-filter {
+    animation: slideInRight 0.7s ease-out;
+}
+
+.filter-btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.filter-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(168, 85, 247, 0.3);
+}
+
+.filter-btn.active {
+    transform: scale(1.05);
+    box-shadow: 0 8px 24px rgba(168, 85, 247, 0.4);
+}
+
+.filter-btn:active {
+    transform: translateY(-1px) scale(1.02);
+}
+
+.news-article {
+    animation: fadeInUp 0.6s ease-out backwards;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.news-article:nth-child(1) { animation-delay: 0.1s; }
+.news-article:nth-child(2) { animation-delay: 0.2s; }
+.news-article:nth-child(3) { animation-delay: 0.3s; }
+.news-article:nth-child(4) { animation-delay: 0.4s; }
+.news-article:nth-child(5) { animation-delay: 0.5s; }
+
+.news-article:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+}
+
+.news-article-header {
+    transition: all 0.3s ease;
+}
+
+.news-type-badge {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.news-type-badge:hover {
+    transform: scale(1.1);
+}
+
+.news-article h2 {
+    transition: color 0.3s ease;
+}
+
+.news-article:hover h2 {
+    color: var(--purple-500);
+}
+
+.news-author {
+    transition: all 0.3s ease;
+}
+
+.news-author:hover {
+    transform: translateX(4px);
+    color: var(--purple-500);
+}
+
+.empty-news {
+    animation: scaleIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.empty-news svg {
+    transition: all 0.3s ease;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(0.95);
+    }
+}
+
+/* Анимация для footer */
+.footer {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.footer-links a {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.footer-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(135deg, var(--purple-500), var(--pink-500));
+    transition: width 0.3s ease;
+}
+
+.footer-links a:hover::after {
+    width: 100%;
+}
+
+.footer-links a:hover {
+    color: var(--purple-500);
+    transform: translateY(-2px);
+}

@@ -1,53 +1,15 @@
 package com.arizon.client.module.modules.render;
 
 import com.arizon.client.module.Module;
+import net.minecraft.client.MinecraftClient;
 
 /**
- * ESP - Shows players through walls with multiple modes
+ * ESP - Shows players through walls
  */
 public class ESP extends Module {
     
-    // Mode settings
-    public String mode = "Box"; // Box, Outline, Corner Box
-    public boolean showHealthBar = true;
-    public boolean showInventory = true;
-    public boolean showArmor = true;
-    public boolean showDistance = true;
-    public boolean showName = true;
-    public boolean danger = true; // Red color for low health enemies
-    
-    // Visual effects
-    public boolean glowEffect = true; // Неоновое свечение
-    public boolean pulseAnimation = true; // Пульсация
-    public boolean rainbowMode = false; // Радужный режим
-    public boolean particles = true; // Частицы вокруг сущности
-    
-    // Filters
-    public boolean showPlayers = true;
-    public boolean showMobs = true; // ВКЛЮЧЕНО ПО УМОЛЧАНИЮ
-    public boolean showInvisible = true;
-    public boolean showNaked = true;
-    
-    // Range
+    public String mode = "Box";
     public int range = 50;
-    
-    // Outline Color (для всех режимов)
-    public int outlineR = 0;
-    public int outlineG = 255;
-    public int outlineB = 255;
-    public int outlineA = 255;
-    
-    // Fill Color для Outline и Corner Box
-    public int fillOutlineR = 0;
-    public int fillOutlineG = 255;
-    public int fillOutlineB = 255;
-    public int fillOutlineA = 60;
-    
-    // Fill Color для Box режима
-    public int fillBoxR = 0;
-    public int fillBoxG = 255;
-    public int fillBoxB = 255;
-    public int fillBoxA = 60;
     
     public ESP() {
         super("ESP");
@@ -73,6 +35,6 @@ public class ESP extends Module {
     
     @Override
     public void onUpdate() {
-        // Rendering handled in WorldRenderContextMixin
+        // Rendering handled in render event
     }
 }

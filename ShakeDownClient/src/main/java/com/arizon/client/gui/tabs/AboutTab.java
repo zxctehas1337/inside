@@ -26,11 +26,11 @@ public class AboutTab extends JPanel {
         
         // Title
         JLabel title = new JLabel(ArizonClient.getName());
-        title.setFont(new Font("Segoe UI", Font.BOLD, 32));
+        title.setFont(new Font("Segoe UI", Font.BOLD, 28));
         title.setForeground(ModernTheme.ACCENT);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainPanel.add(title);
-        mainPanel.add(Box.createVerticalStrut(10));
+        mainPanel.add(Box.createVerticalStrut(6));
         
         // Version
         JLabel versionLabel = new JLabel("Version " + ArizonClient.getVersion());
@@ -38,7 +38,7 @@ public class AboutTab extends JPanel {
         versionLabel.setForeground(ModernTheme.TEXT_SECONDARY);
         versionLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainPanel.add(versionLabel);
-        mainPanel.add(Box.createVerticalStrut(30));
+        mainPanel.add(Box.createVerticalStrut(15));
         
         // Author
         JLabel authorLabel = new JLabel("Created by " + AUTHOR);
@@ -46,7 +46,7 @@ public class AboutTab extends JPanel {
         authorLabel.setForeground(ModernTheme.TEXT_PRIMARY);
         authorLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainPanel.add(authorLabel);
-        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(Box.createVerticalStrut(12));
         
         // Description
         JTextArea descArea = new JTextArea(
@@ -70,7 +70,7 @@ public class AboutTab extends JPanel {
         descArea.setWrapStyleWord(true);
         descArea.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainPanel.add(descArea);
-        mainPanel.add(Box.createVerticalStrut(30));
+        mainPanel.add(Box.createVerticalStrut(15));
         
         // Buttons
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));

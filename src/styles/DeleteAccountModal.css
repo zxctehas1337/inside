@@ -6,7 +6,8 @@
   width: 90%;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  animation: modalSlideIn 0.3s ease-out;
+  animation: modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .delete-modal-icon {
@@ -104,13 +105,15 @@
   border-radius: 8px;
   color: #ffffff;
   font-size: 16px;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .confirm-input-group input:focus {
   outline: none;
   border-color: #ef4444;
   background: rgba(255, 255, 255, 0.08);
+  transform: scale(1.01);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
 }
 
 .confirm-input-group input::placeholder {
@@ -129,7 +132,7 @@
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: none;
   display: flex;
   align-items: center;
@@ -143,6 +146,8 @@
 
 .delete-modal-actions .btn-secondary:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
 }
 
 .delete-modal-actions .btn-danger {
@@ -152,8 +157,8 @@
 
 .delete-modal-actions .btn-danger:hover:not(:disabled) {
   background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 28px rgba(239, 68, 68, 0.5);
 }
 
 .delete-modal-actions .btn:disabled {

@@ -28,7 +28,7 @@ public class ScreenMixin {
         Screen self = (Screen)(Object)this;
         
         // Skip animation for our custom GUI (it has its own)
-        if (self instanceof com.arizon.client.gui.screen.UltraPremiumGui) {
+        if (self instanceof com.arizon.client.gui.screen.ClickGui) {
             return;
         }
         
@@ -54,7 +54,7 @@ public class ScreenMixin {
         Screen self = (Screen)(Object)this;
         
         // Skip for custom GUI
-        if (self instanceof com.arizon.client.gui.screen.UltraPremiumGui) {
+        if (self instanceof com.arizon.client.gui.screen.ClickGui) {
             return;
         }
         

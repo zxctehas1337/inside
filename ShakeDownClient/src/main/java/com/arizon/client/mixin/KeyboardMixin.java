@@ -1,7 +1,7 @@
 package com.arizon.client.mixin;
 
 import com.arizon.client.ArizonClientMod;
-import com.arizon.client.gui.screen.UltraPremiumGui;
+import com.arizon.client.gui.screen.ClickGui;
 import com.arizon.client.keybind.KeyBindSystem;
 import com.arizon.client.module.Module;
 import net.minecraft.client.Keyboard;
@@ -26,7 +26,7 @@ public class KeyboardMixin {
         if (key == GLFW.GLFW_KEY_RIGHT_SHIFT) {
             try {
                 System.out.println("[Arizon Client] Opening GUI...");
-                mc.setScreen(new UltraPremiumGui());
+                mc.setScreen(new ClickGui());
                 System.out.println("[Arizon Client] GUI opened successfully!");
             } catch (Exception e) {
                 System.err.println("[Arizon Client] ERROR opening GUI: " + e.getMessage());

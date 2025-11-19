@@ -31,7 +31,7 @@ public class VisualsTab extends JPanel {
         title.setForeground(ModernTheme.TEXT_PRIMARY);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainPanel.add(title);
-        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(Box.createVerticalStrut(10));
         
         // Time of Day slider
         mainPanel.add(createSection("Time of Day"));
@@ -42,7 +42,7 @@ public class VisualsTab extends JPanel {
             ArizonClient.getInstance().getConfigManager().saveConfig();
         });
         mainPanel.add(timeSlider);
-        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(Box.createVerticalStrut(8));
         
         // Weather dropdown
         mainPanel.add(createSection("Weather"));
@@ -55,11 +55,11 @@ public class VisualsTab extends JPanel {
             ArizonClient.getInstance().getConfigManager().saveConfig();
         });
         mainPanel.add(weatherCombo);
-        mainPanel.add(Box.createVerticalStrut(25));
+        mainPanel.add(Box.createVerticalStrut(10));
         
         // Effects section
         mainPanel.add(createSection("Visual Effects"));
-        mainPanel.add(Box.createVerticalStrut(10));
+        mainPanel.add(Box.createVerticalStrut(5));
         
         ModernCheckBox globalFiltersCheck = new ModernCheckBox("Global Filters", config.globalFilters);
         globalFiltersCheck.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -68,7 +68,7 @@ public class VisualsTab extends JPanel {
             ArizonClient.getInstance().getConfigManager().saveConfig();
         });
         mainPanel.add(globalFiltersCheck);
-        mainPanel.add(Box.createVerticalStrut(10));
+        mainPanel.add(Box.createVerticalStrut(4));
         
         ModernCheckBox antiAliasingCheck = new ModernCheckBox("Anti-Aliasing", config.antiAliasing);
         antiAliasingCheck.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -77,7 +77,7 @@ public class VisualsTab extends JPanel {
             ArizonClient.getInstance().getConfigManager().saveConfig();
         });
         mainPanel.add(antiAliasingCheck);
-        mainPanel.add(Box.createVerticalStrut(10));
+        mainPanel.add(Box.createVerticalStrut(4));
         
         ModernCheckBox outlineCheck = new ModernCheckBox("Object Outline", config.objectOutline);
         outlineCheck.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -86,7 +86,7 @@ public class VisualsTab extends JPanel {
             ArizonClient.getInstance().getConfigManager().saveConfig();
         });
         mainPanel.add(outlineCheck);
-        mainPanel.add(Box.createVerticalStrut(10));
+        mainPanel.add(Box.createVerticalStrut(4));
         
         ModernCheckBox bloomCheck = new ModernCheckBox("Bloom Effect", config.bloom);
         bloomCheck.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -95,7 +95,7 @@ public class VisualsTab extends JPanel {
             ArizonClient.getInstance().getConfigManager().saveConfig();
         });
         mainPanel.add(bloomCheck);
-        mainPanel.add(Box.createVerticalStrut(10));
+        mainPanel.add(Box.createVerticalStrut(4));
         
         ModernCheckBox shadowsCheck = new ModernCheckBox("Enhanced Shadows", config.shadows);
         shadowsCheck.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -104,34 +104,6 @@ public class VisualsTab extends JPanel {
             ArizonClient.getInstance().getConfigManager().saveConfig();
         });
         mainPanel.add(shadowsCheck);
-        mainPanel.add(Box.createVerticalStrut(25));
-        
-        // Render Modules section
-        mainPanel.add(createSection("Render Modules"));
-        mainPanel.add(Box.createVerticalStrut(10));
-        
-        // ChinaHat
-        ModernCheckBox chinaHatCheck = new ModernCheckBox("China Hat", false);
-        chinaHatCheck.setAlignmentX(Component.LEFT_ALIGNMENT);
-        chinaHatCheck.addActionListener(e -> {
-            com.arizon.client.module.Module chinaHat = com.arizon.client.module.ModuleManager.getInstance().getModuleByName("ChinaHat");
-            if (chinaHat != null) {
-                chinaHat.setEnabled(chinaHatCheck.isSelected());
-            }
-        });
-        mainPanel.add(chinaHatCheck);
-        mainPanel.add(Box.createVerticalStrut(10));
-        
-        // JumpCircles
-        ModernCheckBox jumpCirclesCheck = new ModernCheckBox("Jump Circles", false);
-        jumpCirclesCheck.setAlignmentX(Component.LEFT_ALIGNMENT);
-        jumpCirclesCheck.addActionListener(e -> {
-            com.arizon.client.module.Module jumpCircles = com.arizon.client.module.ModuleManager.getInstance().getModuleByName("JumpCircles");
-            if (jumpCircles != null) {
-                jumpCircles.setEnabled(jumpCirclesCheck.isSelected());
-            }
-        });
-        mainPanel.add(jumpCirclesCheck);
         
         JScrollPane scrollPane = new JScrollPane(mainPanel);
         scrollPane.setBorder(null);

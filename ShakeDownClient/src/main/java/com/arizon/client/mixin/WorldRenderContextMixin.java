@@ -4,7 +4,6 @@ import com.arizon.client.ArizonClientMod;
 import com.arizon.client.module.modules.render.ChinaHat;
 import com.arizon.client.module.modules.render.JumpCircles;
 import com.arizon.client.render.TargetESP;
-import com.arizon.client.render.ESPRenderer;
 import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.LightmapTextureManager;
@@ -43,8 +42,5 @@ public class WorldRenderContextMixin {
         
         // Render Target ESP
         TargetESP.render(matrices, tickDelta);
-        
-        // Render ESP
-        ESPRenderer.render(matrices, tickDelta);
     }
 }

@@ -28,7 +28,7 @@ public class HudTab extends JPanel {
         title.setForeground(ModernTheme.TEXT_PRIMARY);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainPanel.add(title);
-        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(Box.createVerticalStrut(10));
         
         // Open HUD Editor button
         ModernButton editorButton = new ModernButton("Open HUD Editor");
@@ -37,7 +37,7 @@ public class HudTab extends JPanel {
             ArizonClient.getInstance().getGuiManager().openHudEditor();
         });
         mainPanel.add(editorButton);
-        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(Box.createVerticalStrut(12));
         
         // Description
         JTextArea descArea = new JTextArea(
@@ -62,18 +62,18 @@ public class HudTab extends JPanel {
         descArea.setWrapStyleWord(true);
         descArea.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainPanel.add(descArea);
-        mainPanel.add(Box.createVerticalStrut(25));
+        mainPanel.add(Box.createVerticalStrut(15));
         
         // Visual Aura Settings
         mainPanel.add(createSection("Visual Aura Settings"));
-        mainPanel.add(Box.createVerticalStrut(10));
+        mainPanel.add(Box.createVerticalStrut(6));
         
         JLabel auraInfo = new JLabel("⚠ Visual effect only - no actual attacks");
         auraInfo.setFont(ModernTheme.FONT_BODY);
         auraInfo.setForeground(ModernTheme.WARNING);
         auraInfo.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainPanel.add(auraInfo);
-        mainPanel.add(Box.createVerticalStrut(10));
+        mainPanel.add(Box.createVerticalStrut(6));
         
         // Aura radius slider
         JLabel radiusLabel = new JLabel("Display Radius");
@@ -81,7 +81,7 @@ public class HudTab extends JPanel {
         radiusLabel.setForeground(ModernTheme.TEXT_PRIMARY);
         radiusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         mainPanel.add(radiusLabel);
-        mainPanel.add(Box.createVerticalStrut(5));
+        mainPanel.add(Box.createVerticalStrut(4));
         
         ModernSlider radiusSlider = new ModernSlider(20, 70, 35);
         radiusSlider.setAlignmentX(Component.LEFT_ALIGNMENT);

@@ -6,6 +6,14 @@
     box-sizing: border-box;
 }
 
+/* Плавные переходы для всех элементов */
+*,
+*::before,
+*::after {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, 
+                transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease;
+}
+
 :root {
     --bg-primary: #0A0A0F;
     --bg-secondary: #12121A;
@@ -29,9 +37,243 @@ body {
     flex-direction: column;
 }
 
+/* Плавная прокрутка */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Анимация появления элементов при прокрутке */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
 #root {
     display: flex;
     flex-direction: column;
     flex: 1;
     width: 100%;
+}
+
+/* Плавные переходы для кнопок */
+button, a, input, select, textarea {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Анимация для карточек */
+.feature-card,
+.pricing-card,
+.action-card,
+.stat-card,
+.news-article {
+    animation: fadeInUp 0.6s ease-out backwards;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover,
+.pricing-card:hover,
+.action-card:hover,
+.stat-card:hover {
+    transform: translateY(-8px);
+}
+
+/* Задержка анимации для последовательного появления */
+.feature-card:nth-child(1) { animation-delay: 0.1s; }
+.feature-card:nth-child(2) { animation-delay: 0.2s; }
+.feature-card:nth-child(3) { animation-delay: 0.3s; }
+.feature-card:nth-child(4) { animation-delay: 0.4s; }
+.feature-card:nth-child(5) { animation-delay: 0.5s; }
+.feature-card:nth-child(6) { animation-delay: 0.6s; }
+
+.pricing-card:nth-child(1) { animation-delay: 0.1s; }
+.pricing-card:nth-child(2) { animation-delay: 0.2s; }
+.pricing-card:nth-child(3) { animation-delay: 0.3s; }
+
+.action-card:nth-child(1) { animation-delay: 0.1s; }
+.action-card:nth-child(2) { animation-delay: 0.2s; }
+.action-card:nth-child(3) { animation-delay: 0.3s; }
+
+/* Анимация для навигации */
+.nav-links a,
+.sidebar-nav .nav-item {
+    position: relative;
+    transition: color 0.3s ease, transform 0.2s ease;
+}
+
+.nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(135deg, var(--purple-500), var(--pink-500));
+    transition: width 0.3s ease;
+}
+
+.nav-links a:hover::after {
+    width: 100%;
+}
+
+/* Плавная анимация для модальных окон */
+.modal {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+    animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Анимация для уведомлений */
+.notification {
+    animation: slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Плавная анимация для переключения страниц */
+.page {
+    animation: fadeIn 0.4s ease-out;
+}
+
+/* Анимация для лаунчера */
+.launcher-preview {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.launcher-nav-item {
+    transition: all 0.3s ease;
+}
+
+.launcher-nav-item:hover {
+    transform: translateX(4px);
+}
+
+/* Плавная анимация для hero секции */
+.hero-content {
+    animation: slideInLeft 0.8s ease-out;
+}
+
+.hero-visual {
+    animation: slideInRight 0.8s ease-out;
+}
+
+/* Анимация для секций при скролле */
+@media (prefers-reduced-motion: no-preference) {
+    section {
+        animation: fadeInUp 0.6s ease-out backwards;
+    }
+    
+    .features { animation-delay: 0.2s; }
+    .pricing { animation-delay: 0.3s; }
+    .download { animation-delay: 0.4s; }
+}
+
+/* Отключение анимаций для пользователей с prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Плавная анимация для toggle switches */
+.toggle-slider {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Анимация для аватара */
+.profile-avatar {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.profile-avatar:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 24px rgba(168, 85, 247, 0.4);
+}
+
+/* Плавная анимация для input полей */
+input:focus,
+textarea:focus,
+select:focus {
+    transform: scale(1.01);
+    transition: all 0.3s ease;
+}
+
+/* Анимация для badge элементов */
+.status-badge,
+.subscription-badge,
+.news-type-badge {
+    transition: all 0.3s ease;
+}
+
+/* Hover эффекты для интерактивных элементов */
+.title-btn:hover {
+    transform: scale(1.1);
+}
+
+.home-launch-btn:hover {
+    transform: scale(1.05);
+}
+
+/* Плавная анимация для фильтров */
+.filter-btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.filter-btn:hover {
+    transform: translateY(-2px);
+}
+
+.filter-btn.active {
+    transform: scale(1.05);
 }

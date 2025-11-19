@@ -35,9 +35,6 @@ public class ArizonClientMod implements ClientModInitializer {
     public void onInitializeClient() {
         instance = this;
         
-        System.out.println("========================================");
-        System.out.println("SHAKEDOWN CLIENT IS LOADING!");
-        System.out.println("========================================");
         LOGGER.info("Initializing {} v{}", MOD_NAME, VERSION);
         
         // Initialize built-in optimization engine (ALWAYS ACTIVE)
@@ -77,7 +74,7 @@ public class ArizonClientMod implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openGuiKey.wasPressed()) {
                 if (client.currentScreen == null) {
-                    client.setScreen(new com.arizon.client.gui.screen.UltraPremiumGui());
+                    client.setScreen(new com.arizon.client.gui.screen.ClickGui());
                 } else {
                     client.setScreen(null);
                 }
